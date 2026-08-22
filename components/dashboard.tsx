@@ -5,7 +5,7 @@ import { SalesChart } from "@/components/sales-chart";
 import { DashboardStats } from "@/components/stats";
 import { Calendario } from "@/components/calendario";
 import { Distribuicao } from "@/components/distribuicao";
-import { useInfluencers } from "@/lib/use-influencers";
+import { useInfluencers, type Influencer } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
 
 function normaliza(s: string) {
@@ -40,7 +40,7 @@ export function Dashboard() {
 		{ label: "Inadimplentes", value: String(inadimplentes), delta: inadimplentes > 0 ? -100 : 0 },
 	];
 
-	const attentionList = influencers.filter((i) => ehNaoPostou(i.status || ""));
+	const attentionList: Influencer[] = influencers.filter((i) => ehNaoPostou(i.status || ""));
 
 	return (
 		<div className="flex flex-1 flex-col gap-6 py-6">
@@ -57,7 +57,6 @@ export function Dashboard() {
 				</div>
 			</div>
 
-			{/* ⬇️ AQUI entra o bloco do Calendário + Distribuição ⬇️ */}
 			<div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<Calendario />
 				<Distribuicao />
