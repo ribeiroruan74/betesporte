@@ -17,8 +17,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-
-type Influencer = { id: string; name: string; username: string; status?: string };
+import type { Influencer } from "@/lib/use-influencers";
 
 export function DashboardInvoices({ attentionList }: { attentionList: Influencer[] }) {
 	return (
