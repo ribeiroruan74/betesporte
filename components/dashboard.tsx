@@ -17,6 +17,12 @@ function ehNaoPostou(status: string) {
 	return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
 }
 
+// Data de hoje no formato dd/mm/aaaa (igual à coluna DATA do BANCO_DE_DADOS)
+function hojeStr() {
+	const d = new Date();
+	return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
 export function Dashboard() {
 	const { influencers, loading } = useInfluencers();
 	const { registros } = useBancoDados();
@@ -28,6 +34,10 @@ export function Dashboard() {
 			</div>
 		);
 	}
+
+	// Filtra os registros do BANCO_DE_DADOS para mostrar SÓ os de hoje
+	const hoje = hojeStr();
+	const registrosHoje = registros.filter((r) => (r.data || "").startsWith(hoje));
 
 	const total = influencers.length;
 	const posted = influencers.filter((i) => !ehNaoPostou(i.status || "")).length;
@@ -52,7 +62,7 @@ export function Dashboard() {
 			<div className="rounded-lg overflow-hidden border">
 				<div className="grid grid-cols-1 gap-px bg-border lg:grid-cols-3">
 					<DashboardStats stats={stats} />
-					<SalesChart registros={registros} />
+					<SalesChart registros={registrosHoje} />
 					<DashboardInvoices attentionList={attentionList} />
 				</div>
 			</div>
@@ -63,5 +73,4 @@ export function Dashboard() {
 			</div>
 		</div>
 	);
-	// trigger fresh build
 }
