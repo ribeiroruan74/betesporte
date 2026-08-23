@@ -39,6 +39,8 @@ export function Dashboard() {
 	const hoje = hojeStr();
 	const registrosHoje = registros.filter((r) => (r.data || "").startsWith(hoje));
 
+	const hoje = `${String(new Date().getDate()).padStart(2, "0")}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${new Date().getFullYear()}`;
+const registrosHoje = registros.filter((r) => (r.data || "").startsWith(hoje));
 	const total = influencers.length;
 	const posted = influencers.filter((i) => !ehNaoPostou(i.status || "")).length;
 	const inadimplentes = total - posted;
