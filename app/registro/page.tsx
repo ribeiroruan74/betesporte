@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
@@ -31,7 +31,85 @@ export default function RegistroPage() {
 	const [statuses, setStatuses] = useState<Record<string, string>>({});
 	const [selected, setSelected] = useState<StatusType[]>([]);
 	const [saving, setSaving] = useState(false);
-	const [saved, setSaved] = useState(false);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Limpa o timer ao desmontar
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+		};
+	}, []);
+
+	function combinedLabel() {
+		return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
+	}
+
+	function toggleStatus(status: StatusType) {
+		if (saving) return;
+		// Atualiza a seleção
+		let nova: StatusType[];
+		if (status === "nao-postou") {
+			nova = selected.includes("nao-postou") ? [] : ["nao-postou"];
+		} else {
+			const semNao = selected.filter((s) => s !== "nao-postou");
+			nova = semNao.includes(status)
+				? semNao.filter((s) => s !== status)
+				: [...semNao, status];
+		}
+		setSelected(nova);
+
+		// Reinicia o timer de 1s a cada toque
+		if (timerRef.current) clearTimeout(timerRef.current);
+		timerRef.current = setTimeout(() => {
+			// Se tiver algo selecionado, salva e avança
+			if (nova.length > 0) {
+				salvarEavancar(nova);
+			}
+		}, 1000);
+	}
+
+	async function salvarEavancar(sel: StatusType[]) {
+		if (!current || sel.length === 0 || saving) return;
+		const combined = sel.map((s) => STATUS_CONFIG[s].label).join(" / ");
+		setSaving(true);
+		try {
+			await fetch("/api/registro", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name: current.name, status: combined }),
+			});
+			setStatuses((prev) => ({ ...prev, [current.name]: combined }));
+		} catch (e) {
+			alert("Erro ao salvar o status. Tente novamente.");
+		} finally {
+			setSaving(false);
+			setSelected([]);
+			if (currentIndex + 1 < influencers.length) {
+				setCurrentIndex(currentIndex + 1);
+			} else {
+				setCurrentIndex(influencers.length);
+			}
+		}
+	}
+
+	function goBack() {
+		if (currentIndex > 0 && !saving) {
+			if (timerRef.current) clearTimeout(timerRef.current);
+			setCurrentIndex(currentIndex - 1);
+			setSelected([]);
+		}
+	}
+
+	function pular() {
+		if (saving) return;
+		if (timerRef.current) clearTimeout(timerRef.current);
+		setSelected([]);
+		if (currentIndex + 1 < influencers.length) {
+			setCurrentIndex(currentIndex + 1);
+		} else {
+			setCurrentIndex(influencers.length);
+		}
+	}
 
 	if (loading) {
 		return (
@@ -54,59 +132,6 @@ export default function RegistroPage() {
 	const current = influencers[currentIndex];
 	const isDone = currentIndex >= influencers.length;
 	const postedCount = Object.keys(statuses).length;
-
-	function toggleStatus(status: StatusType) {
-		if (saving) return;
-		if (status === "nao-postou") {
-			setSelected((prev) => (prev.includes("nao-postou") ? [] : ["nao-postou"]));
-		} else {
-			setSelected((prev) => {
-				const semNao = prev.filter((s) => s !== "nao-postou");
-				return semNao.includes(status)
-					? semNao.filter((s) => s !== status)
-					: [...semNao, status];
-			});
-		}
-	}
-
-	function combinedLabel() {
-		return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
-	}
-
-	async function salvarEavancar() {
-		if (!current || selected.length === 0 || saving) return;
-		const combined = combinedLabel();
-		setSaving(true);
-		try {
-			await fetch("/api/registro", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: current.name, status: combined }),
-			});
-			setStatuses((prev) => ({ ...prev, [current.name]: combined }));
-			setSaved(true);
-			// Delay de 1,5s antes de avançar
-			setTimeout(() => {
-				setSaved(false);
-				setSelected([]);
-				if (currentIndex + 1 < influencers.length) {
-					setCurrentIndex(currentIndex + 1);
-				} else {
-					setCurrentIndex(influencers.length);
-				}
-			}, 1500);
-		} catch (e) {
-			alert("Erro ao salvar o status. Tente novamente.");
-			setSaving(false);
-		}
-	}
-
-	function goBack() {
-		if (currentIndex > 0 && !saving) {
-			setCurrentIndex(currentIndex - 1);
-			setSelected([]);
-		}
-	}
 
 	if (isDone) {
 		return (
@@ -209,27 +234,11 @@ export default function RegistroPage() {
 					🚫 Não Postou
 				</button>
 
-				{/* Salvar automaticamente após selecionar */}
-				{selected.length > 0 && !saving && (
-					<div className="mt-4 rounded-2xl border border-border bg-card p-4">
-						<p className="text-xs text-muted-foreground">Selecionado:</p>
-						<p className="mt-1 text-sm font-semibold text-foreground">{combinedLabel()}</p>
-						<button
-							onClick={salvarEavancar}
-							className="mt-3 w-full rounded-xl bg-primary py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
-						>
-							Salvar e avançar
-						</button>
-					</div>
-				)}
-
-				{/* Feedback de salvamento */}
-				{saving && (
-					<div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
-						<CheckIcon className="h-5 w-5 text-green-500" />
-						<p className="text-sm font-medium text-green-600">
-							{saved ? "Salvo! Avançando..." : "Salvando..."}
-						</p>
+				{/* Indicador sutil do que será salvo (sem botão, sem pop-up) */}
+				{selected.length > 0 && (
+					<div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-center">
+						<p className="text-sm font-semibold text-foreground">{combinedLabel()}</p>
+						<p className="mt-0.5 text-xs text-muted-foreground">Salvando em 1s...</p>
 					</div>
 				)}
 
@@ -242,16 +251,14 @@ export default function RegistroPage() {
 						<ArrowLeftIcon className="h-4 w-4" />
 						Anterior
 					</button>
-					{Object.keys(statuses).length > 0 && (
-						<button
-							onClick={() => { setSelected([]); if (currentIndex + 1 < influencers.length) setCurrentIndex(currentIndex + 1); else setCurrentIndex(influencers.length); }}
-							disabled={saving}
-							className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
-						>
-							Pular
-							<ArrowRightIcon className="h-4 w-4" />
-						</button>
-					)}
+					<button
+						onClick={pular}
+						disabled={saving}
+						className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
+					>
+						Pular
+						<ArrowRightIcon className="h-4 w-4" />
+					</button>
 				</div>
 			</div>
 		</AppShell>
