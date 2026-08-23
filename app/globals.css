@@ -1,206 +1,138 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* ============================================================
-   GLASSMORPHISM — BETesporte
-   Fundo translúcido + blur + bordas luminosas + sombras sutis
-   ============================================================ */
+@theme {
+  --color-background: #eef1f8;
+  --color-foreground: #1d1d1f;
+  --color-card: #ffffff;
+  --color-card-foreground: #1d1d1f;
+  --color-muted: #e8e8ed;
+  --color-muted-foreground: #6e6e73;
+  --color-border: #e2e2e7;
+  --color-input: #d2d2d7;
+  --color-primary: #6366f1;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #a855f7;
+  --color-destructive: #ff3b30;
+  --color-ring: #a855f7;
 
-:root {
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-bg-strong: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.65);
-  --glass-border-strong: rgba(255, 255, 255, 0.9);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.12);
-  --glass-shadow-hover: 0 12px 40px rgba(31, 38, 135, 0.18);
-  --glass-blur: 18px;
-  --glass-blur-strong: 28px;
-  --app-bg: #eef2f7;
+  --radius-lg: 1.5rem;
+  --radius-md: 1rem;
+  --radius-sm: 0.75rem;
+
+  --font-sans: "Inter", "Poppins", "Figtree", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.dark {
-  --glass-bg: rgba(20, 26, 40, 0.55);
-  --glass-bg-strong: rgba(20, 26, 40, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-strong: rgba(255, 255, 255, 0.22);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --glass-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.45);
-  --app-bg: #0b0f1a;
+* {
+  border-color: var(--color-border);
 }
 
-/* ---------- Fundo da aplicação (gradiente + mesh sutil) ---------- */
 body {
-  background: var(--app-bg);
-  background-image:
-    radial-gradient(at 12% 15%, rgba(117, 206, 255, 0.25) 0px, transparent 45%),
-    radial-gradient(at 88% 12%, rgba(175, 82, 222, 0.18) 0px, transparent 45%),
-    radial-gradient(at 78% 88%, rgba(255, 149, 0, 0.14) 0px, transparent 45%),
-    radial-gradient(at 20% 85%, rgba(90, 200, 250, 0.16) 0px, transparent 45%);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ====== FUNDO GRADIENTE SUAVE (azul → violeta) ====== */
+.liquid-bg {
+  background:
+    radial-gradient(1000px 600px at 0% 0%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(900px 550px at 100% 0%, rgba(168, 85, 247, 0.16), transparent 55%),
+    radial-gradient(800px 500px at 50% 120%, rgba(56, 189, 248, 0.14), transparent 60%),
+    linear-gradient(135deg, #e0e7ff 0%, #eef1f8 40%, #f3f4f6 100%);
   background-attachment: fixed;
-  min-height: 100vh;
-  color: var(--foreground, #1a1a2e);
 }
 
-.dark body {
-  background-image:
-    radial-gradient(at 12% 15%, rgba(117, 206, 255, 0.16) 0px, transparent 45%),
-    radial-gradient(at 88% 12%, rgba(175, 82, 222, 0.14) 0px, transparent 45%),
-    radial-gradient(at 78% 88%, rgba(255, 149, 0, 0.10) 0px, transparent 45%),
-    radial-gradient(at 20% 85%, rgba(90, 200, 250, 0.12) 0px, transparent 45%);
+/* Painel de vidro: translúcido + blur forte + borda branca quase transparente */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-/* ---------- Card de vidro base ---------- */
+/* Card de vidro: mais opaco, reflexo no topo, hover suave */
 .glass-card {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: 1.25rem; /* 20px */
-  transition: box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 8px 32px 0 rgba(31, 38, 135, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .glass-card:hover {
-  box-shadow: var(--glass-shadow-hover);
+  transform: translateY(-3px);
+  box-shadow:
+    0 12px 40px 0 rgba(31, 38, 135, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
-/* Variante mais opaca (para áreas com muito conteúdo, ex: tabelas) */
-.glass-card-strong {
-  background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(170%);
-  border: 1px solid var(--glass-border-strong);
-  box-shadow: var(--glass-shadow);
-  border-radius: 1.25rem;
+/* Sidebar de vidro */
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* ---------- Sidebar (vidro) ---------- */
-aside, .sidebar, [class*="sidebar"] {
-  background: var(--glass-bg-strong) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(180%) !important;
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(180%) !important;
-  border-right: 1px solid var(--glass-border) !important;
-  box-shadow: 4px 0 24px rgba(31, 38, 135, 0.08) !important;
+/* Header de vidro */
+.glass-header {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* Item de menu ativo */
-[class*="nav"] a[class*="active"],
-[class*="nav"] [class*="active"],
-[class*="menu"] [class*="active"] {
-  background: rgba(117, 206, 255, 0.22) !important;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(117, 206, 255, 0.35) !important;
-  box-shadow: 0 4px 16px rgba(117, 206, 255, 0.18);
-  border-radius: 0.75rem !important;
-}
-
-/* ---------- Inputs e selects (vidro) ---------- */
-input, select, textarea {
-  background: rgba(255, 255, 255, 0.45) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  backdrop-filter: blur(10px) !important;
-  border: 1px solid var(--glass-border) !important;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 2px 8px rgba(31, 38, 135, 0.06) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.dark input, .dark select, .dark textarea {
-  background: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-input:focus, select:focus, textarea:focus {
-  border-color: rgba(117, 206, 255, 0.7) !important;
-  box-shadow: 0 0 0 3px rgba(117, 206, 255, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
-  outline: none;
-}
-
-/* ---------- Botões ---------- */
-button {
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-}
-
-/* Botão primário (azul) */
-button[class*="bg-primary"],
-button[class*="primary"] {
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.92), rgba(90, 200, 250, 0.88)) !important;
-  border: 1px solid rgba(255, 255, 255, 0.35) !important;
-  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.28) !important;
-}
-
-/* Botões secundários / contorno */
-button[class*="border"]:not([class*="bg-primary"]) {
-  background: rgba(255, 255, 255, 0.35) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  backdrop-filter: blur(10px) !important;
-  border: 1px solid var(--glass-border) !important;
-  box-shadow: 0 4px 14px rgba(31, 38, 135, 0.08) !important;
-}
-
-.dark button[class*="border"]:not([class*="bg-primary"]) {
-  background: rgba(255, 255, 255, 0.06) !important;
-}
-
-/* ---------- Modais ---------- */
-[class*="fixed"] [class*="rounded"],
-[class*="modal"],
-[role="dialog"] {
-  background: var(--glass-bg-strong) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(180%) !important;
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(180%) !important;
-  border: 1px solid var(--glass-border-strong) !important;
-  box-shadow: 0 20px 60px rgba(31, 38, 135, 0.25) !important;
-}
-
-/* Overlay do modal */
-[class*="fixed"] {
-  background: rgba(10, 15, 30, 0.35) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  backdrop-filter: blur(6px) !important;
-}
-
-/* ---------- Tabelas / listas ---------- */
-table, [class*="table"] {
-  background: transparent !important;
-}
-
-[class*="table"] tr, table tr {
-  border-bottom: 1px solid var(--glass-border) !important;
-}
-
-[class*="table"] tr:hover, table tr:hover {
-  background: rgba(117, 206, 255, 0.08) !important;
-}
-
-/* ---------- Scrollbar (toque premium) ---------- */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 130, 160, 0.35);
+  background: rgba(99, 102, 241, 0.25);
   border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 130, 160, 0.55);
-  background-clip: content-box;
+  background: rgba(99, 102, 241, 0.4);
 }
 
-/* ---------- Utilidades ---------- */
-@layer utilities {
-  .glass {
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.card-animate {
+  animation: fadeInUp 0.45s ease both;
+}
+
+.modal-animate {
+  animation: scaleIn 0.25s ease both;
 }
