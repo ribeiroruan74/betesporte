@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, AlertCircleIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
 
@@ -27,12 +27,17 @@ function InstagramIcon({ className }: { className?: string }) {
 	);
 }
 
+function normaliza(s: string) {
+	return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+}
+
 export default function RegistroPage() {
 	const { influencers, loading } = useInfluencers();
 	const [currentIndex, setCurrentIndex] = useState<number>(0);
 	const [statuses, setStatuses] = useState<Record<string, string>>({});
 	const [selected, setSelected] = useState<StatusType[]>([]);
 	const [saving, setSaving] = useState(false);
+	const [showPicker, setShowPicker] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Carrega o último índice salvo quando os influenciadores carregam
@@ -44,7 +49,7 @@ export default function RegistroPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [loading]);
 
-	// Salva o índice atual sempre que mudar (para retomar de onde parou)
+	// Salva o índice atual sempre que mudar
 	useEffect(() => {
 		if (currentIndex > 0) {
 			localStorage.setItem(STORAGE_KEY, String(currentIndex));
@@ -60,6 +65,17 @@ export default function RegistroPage() {
 
 	function combinedLabel() {
 		return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
+	}
+
+	// Status efetivo (o salvo nesta sessão tem prioridade sobre o da planilha)
+	function statusEfetivo(inf: { name: string; status?: string }) {
+		return statuses[inf.name] ?? inf.status ?? "";
+	}
+
+	// Considera pendente: vazio, não postou ou branding
+	function ehPendente(inf: { name: string; status?: string }) {
+		const s = normaliza(statusEfetivo(inf));
+		return s === "" || s === "naopostou" || s === "nao" || s === "branding";
 	}
 
 	function toggleStatus(status: StatusType) {
@@ -124,6 +140,30 @@ export default function RegistroPage() {
 		} else {
 			setCurrentIndex(influencers.length);
 		}
+	}
+
+	// Carrega um influenciador específico pelo índice
+	function carregarInfluenciador(idx: number) {
+		if (saving) return;
+		if (timerRef.current) clearTimeout(timerRef.current);
+		setSelected([]);
+		setShowPicker(false);
+		setCurrentIndex(Math.min(Math.max(idx, 0), influencers.length - 1));
+	}
+
+	// Pula para o próximo pendente (vazio, não postou ou branding)
+	function proximoPendente() {
+		if (saving) return;
+		if (timerRef.current) clearTimeout(timerRef.current);
+		setSelected([]);
+		for (let i = 1; i <= influencers.length; i++) {
+			const idx = (currentIndex + i) % influencers.length;
+			if (ehPendente(influencers[idx])) {
+				setCurrentIndex(idx);
+				return;
+			}
+		}
+		alert("Nenhum influenciador pendente encontrado.");
 	}
 
 	function comecarDoInicio() {
@@ -221,6 +261,24 @@ export default function RegistroPage() {
 					)}
 				</div>
 
+				{/* Seletor de influenciador específico */}
+				{showPicker && (
+					<div className="mb-4 rounded-2xl border border-border bg-card p-4">
+						<p className="mb-2 text-xs text-muted-foreground">Carregar influenciador:</p>
+						<select
+							value={currentIndex}
+							onChange={(e) => carregarInfluenciador(parseInt(e.target.value, 10))}
+							className="w-full rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+						>
+							{influencers.map((inf, i) => (
+								<option key={inf.name} value={i}>
+									{i + 1}. {inf.name} {ehPendente(inf) ? "· pendente" : ""}
+								</option>
+							))}
+						</select>
+					</div>
+				)}
+
 				<div className="grid grid-cols-2 gap-3">
 					{(Object.keys(STATUS_CONFIG) as StatusType[])
 						.filter((s) => s !== "nao-postou")
@@ -283,7 +341,26 @@ export default function RegistroPage() {
 					</button>
 				</div>
 
-				{/* Começar do início (reseta o progresso salvo) */}
+				{/* Ações extras: carregar específico + próximo pendente */}
+				<div className="mt-3 grid grid-cols-2 gap-3">
+					<button
+						onClick={() => setShowPicker((v) => !v)}
+						disabled={saving}
+						className="flex items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted disabled:opacity-40"
+					>
+						<UserRoundIcon className="h-4 w-4" />
+						Carregar influenciador
+					</button>
+					<button
+						onClick={proximoPendente}
+						disabled={saving}
+						className="flex items-center justify-center gap-2 rounded-xl border border-[#FF9500]/40 bg-[#FF9500]/10 py-3 text-sm font-medium text-[#FF9500] transition-all hover:bg-[#FF9500]/20 disabled:opacity-40"
+					>
+						<AlertCircleIcon className="h-4 w-4" />
+						Próximo pendente
+					</button>
+				</div>
+
 				{currentIndex > 0 && (
 					<button
 						onClick={comecarDoInicio}
