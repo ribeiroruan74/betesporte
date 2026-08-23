@@ -17,6 +17,12 @@ function normaliza(s: string) {
   return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+// CORREÇÃO: detecta "não postou" com ou sem espaço (nao postou / naopostou)
+function ehNaoPostou(status: string) {
+  const n = normaliza(status).replace(/\s+/g, "");
+  return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
+}
+
 function metaStatus(status: string) {
   const meta = STATUS_META[normaliza(status)];
   return meta ? { ...meta } : { label: status || "—", color: "#94A3B8" };
@@ -79,7 +85,7 @@ export default function RelatoriosPage() {
   }
 
   const total = filtrados.length;
-  const postaram = filtrados.filter((r) => normaliza(r.status) !== "naopostou" && r.status.trim() !== "").length;
+  const postaram = filtrados.filter((r) => !ehNaoPostou(r.status)).length;
   const inadimplentes = total - postaram;
   const adesao = total > 0 ? Math.round((postaram / total) * 100) : 0;
 
