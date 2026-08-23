@@ -30,8 +30,8 @@ export default function RegistroPage() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [statuses, setStatuses] = useState<Record<string, string>>({});
 	const [selected, setSelected] = useState<StatusType[]>([]);
-	const [showConfirm, setShowConfirm] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [saved, setSaved] = useState(false);
 
 	if (loading) {
 		return (
@@ -56,24 +56,25 @@ export default function RegistroPage() {
 	const postedCount = Object.keys(statuses).length;
 
 	function toggleStatus(status: StatusType) {
+		if (saving) return;
 		if (status === "nao-postou") {
 			setSelected((prev) => (prev.includes("nao-postou") ? [] : ["nao-postou"]));
-			return;
+		} else {
+			setSelected((prev) => {
+				const semNao = prev.filter((s) => s !== "nao-postou");
+				return semNao.includes(status)
+					? semNao.filter((s) => s !== status)
+					: [...semNao, status];
+			});
 		}
-		setSelected((prev) => {
-			const semNao = prev.filter((s) => s !== "nao-postou");
-			return semNao.includes(status)
-				? semNao.filter((s) => s !== status)
-				: [...semNao, status];
-		});
 	}
 
 	function combinedLabel() {
 		return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
 	}
 
-	async function confirmar() {
-		if (!current || selected.length === 0) return;
+	async function salvarEavancar() {
+		if (!current || selected.length === 0 || saving) return;
 		const combined = combinedLabel();
 		setSaving(true);
 		try {
@@ -83,26 +84,25 @@ export default function RegistroPage() {
 				body: JSON.stringify({ name: current.name, status: combined }),
 			});
 			setStatuses((prev) => ({ ...prev, [current.name]: combined }));
-			setShowConfirm(true);
+			setSaved(true);
+			// Delay de 1,5s antes de avançar
+			setTimeout(() => {
+				setSaved(false);
+				setSelected([]);
+				if (currentIndex + 1 < influencers.length) {
+					setCurrentIndex(currentIndex + 1);
+				} else {
+					setCurrentIndex(influencers.length);
+				}
+			}, 1500);
 		} catch (e) {
 			alert("Erro ao salvar o status. Tente novamente.");
-		} finally {
 			setSaving(false);
 		}
 	}
 
-	function next() {
-		setShowConfirm(false);
-		setSelected([]);
-		if (currentIndex + 1 < influencers.length) {
-			setCurrentIndex(currentIndex + 1);
-		} else {
-			setCurrentIndex(influencers.length);
-		}
-	}
-
 	function goBack() {
-		if (currentIndex > 0) {
+		if (currentIndex > 0 && !saving) {
 			setCurrentIndex(currentIndex - 1);
 			setSelected([]);
 		}
@@ -209,24 +209,34 @@ export default function RegistroPage() {
 					🚫 Não Postou
 				</button>
 
-				{selected.length > 0 && (
+				{/* Salvar automaticamente após selecionar */}
+				{selected.length > 0 && !saving && (
 					<div className="mt-4 rounded-2xl border border-border bg-card p-4">
 						<p className="text-xs text-muted-foreground">Selecionado:</p>
 						<p className="mt-1 text-sm font-semibold text-foreground">{combinedLabel()}</p>
 						<button
-							onClick={confirmar}
-							disabled={saving}
-							className="mt-3 w-full rounded-xl bg-primary py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+							onClick={salvarEavancar}
+							className="mt-3 w-full rounded-xl bg-primary py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
 						>
-							{saving ? "Salvando..." : "Confirmar status"}
+							Salvar e avançar
 						</button>
+					</div>
+				)}
+
+				{/* Feedback de salvamento */}
+				{saving && (
+					<div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+						<CheckIcon className="h-5 w-5 text-green-500" />
+						<p className="text-sm font-medium text-green-600">
+							{saved ? "Salvo! Avançando..." : "Salvando..."}
+						</p>
 					</div>
 				)}
 
 				<div className="mt-6 flex gap-3">
 					<button
 						onClick={goBack}
-						disabled={currentIndex === 0}
+						disabled={currentIndex === 0 || saving}
 						className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted disabled:opacity-40"
 					>
 						<ArrowLeftIcon className="h-4 w-4" />
@@ -234,7 +244,8 @@ export default function RegistroPage() {
 					</button>
 					{Object.keys(statuses).length > 0 && (
 						<button
-							onClick={next}
+							onClick={() => { setSelected([]); if (currentIndex + 1 < influencers.length) setCurrentIndex(currentIndex + 1); else setCurrentIndex(influencers.length); }}
+							disabled={saving}
 							className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
 						>
 							Pular
@@ -243,28 +254,6 @@ export default function RegistroPage() {
 					)}
 				</div>
 			</div>
-
-			{showConfirm && current && statuses[current.name] && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-					<div className="w-full max-w-sm overflow-visible rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-						<div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 text-2xl">
-							<CheckIcon className="h-7 w-7 text-green-500" />
-						</div>
-						<p className="text-sm text-muted-foreground">Status registrado para</p>
-						<p className="mt-1 text-lg font-bold text-foreground">{current.name}</p>
-						<div className="mx-auto mt-4 w-fit rounded-full px-4 py-2 text-sm font-medium bg-primary/10 text-primary">
-							{statuses[current.name]}
-						</div>
-						<button
-							onClick={next}
-							className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95"
-						>
-							Próximo influenciador
-							<ArrowRightIcon className="h-4 w-4" />
-						</button>
-					</div>
-				</div>
-			)}
 		</AppShell>
 	);
 }
