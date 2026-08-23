@@ -29,6 +29,11 @@ function paraISO(data: string) {
   return `${ano}-${String(parseInt(p[1]) || 0).padStart(2, "0")}-${String(parseInt(p[0]) || 0).padStart(2, "0")}`;
 }
 
+function hojeISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default function RelatoriosPage() {
   const { registros, loading } = useBancoDados();
   const [de, setDe] = useState("");
@@ -42,9 +47,9 @@ export default function RelatoriosPage() {
   );
 
   const filtrados = useMemo(() => {
+    const temFiltro = de || ate || mes || influenciador;
     return registros.filter((r) => {
       if (influenciador && normaliza(r.nome) !== normaliza(influenciador)) return false;
-
       if (mes) {
         const p = r.data.split("/");
         if (p.length !== 3) return false;
@@ -52,12 +57,14 @@ export default function RelatoriosPage() {
         const mesNum = String(parseInt(p[1]) || 0).padStart(2, "0");
         if (`${ano}-${mesNum}` !== mes) return false;
       }
-
       if (de || ate) {
         const iso = paraISO(r.data);
         if (!iso) return false;
         if (de && iso < de) return false;
         if (ate && iso > ate) return false;
+      }
+      if (!temFiltro) {
+        return paraISO(r.data) === hojeISO();
       }
       return true;
     });
@@ -142,9 +149,7 @@ export default function RelatoriosPage() {
       </div>
 
       <div className="glass-card card-animate mt-6 rounded-2xl p-6">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">
-          Registros ({total})
-        </h2>
+        <h2 className="mb-4 text-sm font-semibold text-foreground">Registros ({total})</h2>
         {filtrados.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum registro com os filtros selecionados.</p>
         ) : (
