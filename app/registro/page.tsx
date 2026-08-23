@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon } from "lucide-react";
+
+const STORAGE_KEY = "betesporte_registro_indice";
 
 function InstagramIcon({ className }: { className?: string }) {
 	return (
@@ -27,11 +29,27 @@ function InstagramIcon({ className }: { className?: string }) {
 
 export default function RegistroPage() {
 	const { influencers, loading } = useInfluencers();
-	const [currentIndex, setCurrentIndex] = useState(0);
+	const [currentIndex, setCurrentIndex] = useState<number>(0);
 	const [statuses, setStatuses] = useState<Record<string, string>>({});
 	const [selected, setSelected] = useState<StatusType[]>([]);
 	const [saving, setSaving] = useState(false);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Carrega o último índice salvo quando os influenciadores carregam
+	useEffect(() => {
+		if (loading || influencers.length === 0) return;
+		const salvo = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
+		const idx = isNaN(salvo) ? 0 : Math.min(Math.max(salvo, 0), influencers.length - 1);
+		setCurrentIndex(idx);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [loading]);
+
+	// Salva o índice atual sempre que mudar (para retomar de onde parou)
+	useEffect(() => {
+		if (currentIndex > 0) {
+			localStorage.setItem(STORAGE_KEY, String(currentIndex));
+		}
+	}, [currentIndex]);
 
 	// Limpa o timer ao desmontar
 	useEffect(() => {
@@ -46,7 +64,6 @@ export default function RegistroPage() {
 
 	function toggleStatus(status: StatusType) {
 		if (saving) return;
-		// Atualiza a seleção
 		let nova: StatusType[];
 		if (status === "nao-postou") {
 			nova = selected.includes("nao-postou") ? [] : ["nao-postou"];
@@ -58,10 +75,8 @@ export default function RegistroPage() {
 		}
 		setSelected(nova);
 
-		// Reinicia o timer de 1s a cada toque
 		if (timerRef.current) clearTimeout(timerRef.current);
 		timerRef.current = setTimeout(() => {
-			// Se tiver algo selecionado, salva e avança
 			if (nova.length > 0) {
 				salvarEavancar(nova);
 			}
@@ -111,6 +126,14 @@ export default function RegistroPage() {
 		}
 	}
 
+	function comecarDoInicio() {
+		if (timerRef.current) clearTimeout(timerRef.current);
+		localStorage.removeItem(STORAGE_KEY);
+		setStatuses({});
+		setSelected([]);
+		setCurrentIndex(0);
+	}
+
 	if (loading) {
 		return (
 			<AppShell>
@@ -145,7 +168,7 @@ export default function RegistroPage() {
 						{postedCount} de {influencers.length} influenciadores registrados.
 					</p>
 					<button
-						onClick={() => { setStatuses({}); setCurrentIndex(0); setSelected([]); }}
+						onClick={comecarDoInicio}
 						className="mt-4 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-[1.03] active:scale-95"
 					>
 						Começar novo registro
@@ -234,7 +257,6 @@ export default function RegistroPage() {
 					🚫 Não Postou
 				</button>
 
-				{/* Indicador sutil do que será salvo (sem botão, sem pop-up) */}
 				{selected.length > 0 && (
 					<div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-center">
 						<p className="text-sm font-semibold text-foreground">{combinedLabel()}</p>
@@ -260,6 +282,18 @@ export default function RegistroPage() {
 						<ArrowRightIcon className="h-4 w-4" />
 					</button>
 				</div>
+
+				{/* Começar do início (reseta o progresso salvo) */}
+				{currentIndex > 0 && (
+					<button
+						onClick={comecarDoInicio}
+						disabled={saving}
+						className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted disabled:opacity-40"
+					>
+						<RotateCcwIcon className="h-4 w-4" />
+						Começar do início
+					</button>
+				)}
 			</div>
 		</AppShell>
 	);
