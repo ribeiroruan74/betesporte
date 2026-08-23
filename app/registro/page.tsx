@@ -6,7 +6,6 @@ import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from "lucide-react";
 
-// Ícone do Instagram (SVG embutido — a lib lucide-react removeu os ícones de marcas)
 function InstagramIcon({ className }: { className?: string }) {
 	return (
 		<svg
@@ -29,7 +28,8 @@ function InstagramIcon({ className }: { className?: string }) {
 export default function RegistroPage() {
 	const { influencers, loading } = useInfluencers();
 	const [currentIndex, setCurrentIndex] = useState(0);
-	const [statuses, setStatuses] = useState<Record<string, StatusType>>({});
+	const [statuses, setStatuses] = useState<Record<string, string>>({});
+	const [selected, setSelected] = useState<StatusType[]>([]);
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [saving, setSaving] = useState(false);
 
@@ -55,16 +55,34 @@ export default function RegistroPage() {
 	const isDone = currentIndex >= influencers.length;
 	const postedCount = Object.keys(statuses).length;
 
-	async function handleStatus(status: StatusType) {
-		if (!current) return;
+	function toggleStatus(status: StatusType) {
+		if (status === "nao-postou") {
+			setSelected((prev) => (prev.includes("nao-postou") ? [] : ["nao-postou"]));
+			return;
+		}
+		setSelected((prev) => {
+			const semNao = prev.filter((s) => s !== "nao-postou");
+			return semNao.includes(status)
+				? semNao.filter((s) => s !== status)
+				: [...semNao, status];
+		});
+	}
+
+	function combinedLabel() {
+		return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
+	}
+
+	async function confirmar() {
+		if (!current || selected.length === 0) return;
+		const combined = combinedLabel();
 		setSaving(true);
 		try {
 			await fetch("/api/registro", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: current.name, status }),
+				body: JSON.stringify({ name: current.name, status: combined }),
 			});
-			setStatuses((prev) => ({ ...prev, [current.name]: status }));
+			setStatuses((prev) => ({ ...prev, [current.name]: combined }));
 			setShowConfirm(true);
 		} catch (e) {
 			alert("Erro ao salvar o status. Tente novamente.");
@@ -75,6 +93,7 @@ export default function RegistroPage() {
 
 	function next() {
 		setShowConfirm(false);
+		setSelected([]);
 		if (currentIndex + 1 < influencers.length) {
 			setCurrentIndex(currentIndex + 1);
 		} else {
@@ -85,6 +104,7 @@ export default function RegistroPage() {
 	function goBack() {
 		if (currentIndex > 0) {
 			setCurrentIndex(currentIndex - 1);
+			setSelected([]);
 		}
 	}
 
@@ -100,7 +120,7 @@ export default function RegistroPage() {
 						{postedCount} de {influencers.length} influenciadores registrados.
 					</p>
 					<button
-						onClick={() => { setStatuses({}); setCurrentIndex(0); }}
+						onClick={() => { setStatuses({}); setCurrentIndex(0); setSelected([]); }}
 						className="mt-4 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-[1.03] active:scale-95"
 					>
 						Começar novo registro
@@ -117,7 +137,6 @@ export default function RegistroPage() {
 	return (
 		<AppShell>
 			<div className="pb-24 pt-2">
-				{/* Progresso */}
 				<div className="mb-6">
 					<div className="flex items-center justify-between text-sm text-muted-foreground">
 						<span>{currentIndex + 1} / {influencers.length}</span>
@@ -131,7 +150,6 @@ export default function RegistroPage() {
 					</div>
 				</div>
 
-				{/* Card do influenciador */}
 				<div className="mb-6 overflow-visible rounded-3xl border border-border bg-card p-6 pt-8 text-center shadow-sm">
 					<div className="relative mx-auto mb-4 flex h-24 w-24 items-center justify-center overflow-visible">
 						<div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#75CEFF] to-[#AF52DE] opacity-20 blur-xl" />
@@ -155,37 +173,56 @@ export default function RegistroPage() {
 					)}
 				</div>
 
-				{/* Botões de status */}
 				<div className="grid grid-cols-2 gap-3">
 					{(Object.keys(STATUS_CONFIG) as StatusType[])
 						.filter((s) => s !== "nao-postou")
 						.map((status) => {
 							const config = STATUS_CONFIG[status];
+							const isSelected = selected.includes(status);
 							return (
 								<button
 									key={status}
-									onClick={() => handleStatus(status)}
+									onClick={() => toggleStatus(status)}
 									disabled={saving}
 									className="flex flex-col items-center justify-center gap-2 rounded-2xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95 disabled:opacity-50"
-									style={{ borderColor: config.color, backgroundColor: `${config.color}1A` }}
+									style={{
+										borderColor: isSelected ? config.color : config.color + "55",
+										backgroundColor: isSelected ? `${config.color}33` : `${config.color}1A`,
+										boxShadow: isSelected ? `0 0 0 2px ${config.color}` : "none",
+									}}
 								>
 									<span className="text-2xl">{config.icon}</span>
 									<span className="text-sm font-medium" style={{ color: config.color }}>{config.label}</span>
+									{isSelected && <CheckIcon className="h-4 w-4" style={{ color: config.color }} />}
 								</button>
 							);
 						})}
 				</div>
 
-				{/* Não Postou */}
 				<button
-					onClick={() => handleStatus("nao-postou")}
+					onClick={() => toggleStatus("nao-postou")}
 					disabled={saving}
-					className="mt-3 w-full rounded-2xl bg-[#FF3B30] py-4 font-semibold text-white shadow-lg shadow-[#FF3B30]/25 transition-all hover:scale-[1.01] hover:shadow-xl active:scale-95 disabled:opacity-50"
+					className={`mt-3 w-full rounded-2xl py-4 font-semibold text-white shadow-lg transition-all hover:scale-[1.01] hover:shadow-xl active:scale-95 disabled:opacity-50 ${
+						selected.includes("nao-postou") ? "bg-[#FF3B30] shadow-[#FF3B30]/25" : "bg-[#FF3B30]/70"
+					}`}
 				>
 					🚫 Não Postou
 				</button>
 
-				{/* Navegação */}
+				{selected.length > 0 && (
+					<div className="mt-4 rounded-2xl border border-border bg-card p-4">
+						<p className="text-xs text-muted-foreground">Selecionado:</p>
+						<p className="mt-1 text-sm font-semibold text-foreground">{combinedLabel()}</p>
+						<button
+							onClick={confirmar}
+							disabled={saving}
+							className="mt-3 w-full rounded-xl bg-primary py-3 font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+						>
+							{saving ? "Salvando..." : "Confirmar status"}
+						</button>
+					</div>
+				)}
+
 				<div className="mt-6 flex gap-3">
 					<button
 						onClick={goBack}
@@ -207,23 +244,16 @@ export default function RegistroPage() {
 				</div>
 			</div>
 
-			{/* Modal de confirmação */}
 			{showConfirm && current && statuses[current.name] && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
 					<div className="w-full max-w-sm overflow-visible rounded-3xl border border-border bg-card p-6 text-center shadow-2xl">
-						<div
-							className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-2xl"
-							style={{ backgroundColor: `${STATUS_CONFIG[statuses[current.name]].color}1A` }}
-						>
-							{STATUS_CONFIG[statuses[current.name]].icon}
+						<div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 text-2xl">
+							<CheckIcon className="h-7 w-7 text-green-500" />
 						</div>
 						<p className="text-sm text-muted-foreground">Status registrado para</p>
 						<p className="mt-1 text-lg font-bold text-foreground">{current.name}</p>
-						<div
-							className="mx-auto mt-4 w-fit rounded-full px-4 py-2 text-sm font-medium"
-							style={{ backgroundColor: `${STATUS_CONFIG[statuses[current.name]].color}1A`, color: STATUS_CONFIG[statuses[current.name]].color }}
-						>
-							{STATUS_CONFIG[statuses[current.name]].label}
+						<div className="mx-auto mt-4 w-fit rounded-full px-4 py-2 text-sm font-medium bg-primary/10 text-primary">
+							{statuses[current.name]}
 						</div>
 						<button
 							onClick={next}
