@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
 import { useToast } from "@/components/toast";
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RefreshCwIcon, CloudOffIcon, ChevronDownIcon, UserRoundIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, AlertCircleIcon, ChevronDownIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
 const FILA_KEY = "betesporte_registro_fila";
@@ -18,7 +18,7 @@ function normaliza(s: string) {
 export default function RegistroPage() {
   const { influencers, loading } = useInfluencers();
   const { mostrar } = useToast();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<StatusType[]>([]);
   const [saving, setSaving] = useState(false);
@@ -28,7 +28,7 @@ export default function RegistroPage() {
   const filaRef = useRef<Pendente[]>([]);
   filaRef.current = fila;
 
-  // Carrega o último índice salvo
+  // Carrega o último índice salvo quando os influenciadores carregam
   useEffect(() => {
     if (loading || influencers.length === 0) return;
     const salvo = parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10);
@@ -37,6 +37,7 @@ export default function RegistroPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
+  // Salva o índice atual sempre que mudar
   useEffect(() => {
     if (currentIndex > 0) localStorage.setItem(STORAGE_KEY, String(currentIndex));
   }, [currentIndex]);
@@ -51,10 +52,13 @@ export default function RegistroPage() {
 
   // Persiste a fila a cada mudança
   useEffect(() => {
-    localStorage.setItem(FILA_KEY, JSON.stringify(fila));
+    try { localStorage.setItem(FILA_KEY, JSON.stringify(fila)); } catch { /* ignore */ }
   }, [fila]);
 
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  // Limpa o timer ao desmontar
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   function combinedLabel() {
     return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
@@ -92,33 +96,31 @@ export default function RegistroPage() {
     }
   }
 
-  function adicionarNaFila(name: string, status: string) {
-    setFila((f) => [...f.filter((x) => !(x.name === name && x.status === status)), { name, status, ts: Date.now() }]);
-  }
-
-  function removerDaFila(name: string, status: string) {
-    setFila((f) => f.filter((x) => !(x.name === name && x.status === status)));
-  }
-
   function salvarAtual() {
     if (selected.length === 0 || !influencers[currentIndex]) return;
     const inf = influencers[currentIndex];
     const status = combinedLabel();
+
+    // 1) Salva imediatamente no estado + na fila local (proteção contra perda)
+    setStatuses((p) => ({ ...p, [inf.name]: status }));
+    setFila((f) => [...f.filter((x) => !(x.name === inf.name && x.status === status)), { name: inf.name, status, ts: Date.now() }]);
+    mostrar(`✓ ${inf.name} salvo`);
+    setSelected([]);
+
+    // 2) Envia para a planilha em segundo plano
     setSaving(true);
     timerRef.current = setTimeout(async () => {
       const ok = await enviar(inf.name, status);
-      setStatuses((p) => ({ ...p, [inf.name]: status }));
-      setSelected([]);
       setSaving(false);
       if (ok) {
-        removerDaFila(inf.name, status);
-        mostrar(`✓ ${inf.name} salvo`);
+        setFila((f) => f.filter((x) => !(x.name === inf.name && x.status === status)));
       } else {
-        adicionarNaFila(inf.name, status);
-        mostrar(`Sem conexão — ${inf.name} salvo no dispositivo`, "error");
+        mostrar(`Sem conexão — ${inf.name} ficou salvo no dispositivo`, "error");
       }
-      if (currentIndex < influencers.length - 1) setCurrentIndex(currentIndex + 1);
-    }, 700);
+    }, 500);
+
+    // 3) Avança
+    if (currentIndex < influencers.length - 1) setCurrentIndex(currentIndex + 1);
   }
 
   async function sincronizar() {
@@ -150,14 +152,14 @@ export default function RegistroPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Registro</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Marque os status — os dados ficam protegidos no dispositivo</p>
+          <p className="mt-1 text-sm text-muted-foreground">Selecione o status e salve</p>
         </div>
         {fila.length > 0 && (
           <button
             onClick={sincronizar}
             className="flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
           >
-            <RefreshCwIcon className="h-4 w-4" />
+            <RotateCcwIcon className="h-4 w-4" />
             Sincronizar ({fila.length})
           </button>
         )}
@@ -165,7 +167,7 @@ export default function RegistroPage() {
 
       {fila.length > 0 && (
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
-          <CloudOffIcon className="h-4 w-4 shrink-0" />
+          <AlertCircleIcon className="h-4 w-4 shrink-0" />
           {fila.length} registro(s) salvos no dispositivo aguardando sincronização.
         </div>
       )}
@@ -283,7 +285,7 @@ export default function RegistroPage() {
           disabled={selected.length === 0 || saving}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition disabled:opacity-50"
         >
-          {saving ? <RefreshCwIcon className="h-4 w-4 animate-spin" /> : <CheckIcon className="h-4 w-4" />}
+          {saving ? <RotateCcwIcon className="h-4 w-4 animate-spin" /> : <CheckIcon className="h-4 w-4" />}
           {saving ? "Salvando..." : "Salvar e próximo"}
         </button>
       </div>

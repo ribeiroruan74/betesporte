@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { FinalizarDiaButton } from "@/components/finalizar-dia-button";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
@@ -116,6 +117,9 @@ export default function Home() {
 
   return (
     <AppShell>
+            <div className="flex justify-end">
+        <FinalizarDiaButton />
+      </div>
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
