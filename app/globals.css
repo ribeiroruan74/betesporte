@@ -345,3 +345,60 @@ table tr:hover,
 .card-animate { animation: fadeInUp 0.45s ease both; }
 .modal-animate { animation: scaleIn 0.25s ease both; }
 .toast-animate { animation: toastIn 0.28s ease both; }
+/* ============================================================
+   SIDEBAR — estilo referência (escura, cantos, item ativo claro)
+   ============================================================ */
+[class*="sidebar"] {
+  background-color: #0e1116 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+/* Logo branco no topo */
+[class*="sidebar"] a[href="/"] {
+  color: #ffffff !important;
+}
+[class*="sidebar"] a[href="/"] span {
+  color: #ffffff !important;
+}
+
+/* Itens do menu: texto claro, sem fundo por padrão */
+[class*="sidebar"] [class*="menu"] a {
+  color: rgba(255, 255, 255, 0.72) !important;
+  border-radius: 0.625rem !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+[class*="sidebar"] [class*="menu"] a:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+/* Item ativo: fundo mais claro (destaque) */
+[class*="sidebar"] [data-active="true"],
+[class*="sidebar"] [aria-current="page"],
+[class*="sidebar"] a[class*="active"] {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  border-left: none !important;
+}
+[class*="sidebar"] [data-active="true"] svg,
+[class*="sidebar"] [aria-current="page"] svg,
+[class*="sidebar"] a[class*="active"] svg {
+  color: #ffffff !important;
+}
+
+/* Rótulos de seção (uppercase, discreto) */
+[class*="sidebar"] [class*="group-label"] {
+  color: rgba(255, 255, 255, 0.4) !important;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* Setas dos menus recolhíveis */
+[class*="sidebar"] [class*="chevron"],
+[class*="sidebar"] [class*="caret"] {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
