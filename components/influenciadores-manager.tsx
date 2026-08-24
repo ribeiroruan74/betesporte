@@ -1,0 +1,163 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { useToast } from "@/components/toast";
+import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon } from "lucide-react";
+
+interface Inf { linha: number; nome: string; username: string; link: string; }
+
+export function InfluenciadoresManager() {
+  const { mostrar } = useToast();
+  const [lista, setLista] = useState<Inf[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [nome, setNome] = useState("");
+  const [username, setUsername] = useState("");
+  const [link, setLink] = useState("");
+  const [editando, setEditando] = useState<number | null>(null);
+  const [edNome, setEdNome] = useState("");
+  const [edUser, setEdUser] = useState("");
+  const [edLink, setEdLink] = useState("");
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    try {
+      const res = await fetch("/api/influenciadores");
+      const data = await res.json();
+      setLista(data.influenciadores || []);
+    } catch {
+      mostrar("Erro ao carregar influenciadores", "error");
+    } finally {
+      setCarregando(false);
+    }
+  }, [mostrar]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  async function adicionar() {
+    if (!nome.trim()) { mostrar("Informe o nome", "error"); return; }
+    const res = await fetch("/api/influenciadores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, username, link }),
+    });
+    if (res.ok) {
+      mostrar(`${nome} adicionado`);
+      setNome(""); setUsername(""); setLink("");
+      carregar();
+    } else {
+      mostrar("Erro ao adicionar", "error");
+    }
+  }
+
+  async function salvarEdicao(inf: Inf) {
+    const res = await fetch("/api/influenciadores", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: inf.nome, novoNome: edNome, username: edUser, link: edLink }),
+    });
+    if (res.ok) {
+      mostrar("Influenciador atualizado");
+      setEditando(null);
+      carregar();
+    } else {
+      mostrar("Erro ao atualizar", "error");
+    }
+  }
+
+  async function remover(inf: Inf) {
+    if (!window.confirm(`Remover ${inf.nome}?`)) return;
+    const res = await fetch("/api/influenciadores", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: inf.nome }),
+    });
+    if (res.ok) {
+      mostrar(`${inf.nome} removido`);
+      carregar();
+    } else {
+      mostrar("Erro ao remover", "error");
+    }
+  }
+
+  return (
+    <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+      <div className="flex items-center gap-2">
+        <UserRoundIcon className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold text-foreground">Influenciadores ({lista.length})</h2>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-4">
+        <input
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nome"
+          className="rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="@username"
+          className="rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <input
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="Link (opcional)"
+          className="rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <button
+          onClick={adicionar}
+          className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Adicionar
+        </button>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-2">
+        {carregando ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2Icon className="h-4 w-4 animate-spin" /> Carregando...
+          </p>
+        ) : lista.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum influenciador cadastrado.</p>
+        ) : (
+          lista.map((inf) =>
+            editando === inf.linha ? (
+              <div key={inf.linha} className="grid grid-cols-1 gap-2 rounded-xl bg-white/60 p-3 md:grid-cols-4">
+                <input value={edNome} onChange={(e) => setEdNome(e.target.value)} className="rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <input value={edUser} onChange={(e) => setEdUser(e.target.value)} className="rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <input value={edLink} onChange={(e) => setEdLink(e.target.value)} className="rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm outline-none focus:border-primary" />
+                <div className="flex gap-2">
+                  <button onClick={() => salvarEdicao(inf)} className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white">
+                    <CheckIcon className="h-3.5 w-3.5" /> Salvar
+                  </button>
+                  <button onClick={() => setEditando(null)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground">
+                    <XIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div key={inf.linha} className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
+                  <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => { setEditando(inf.linha); setEdNome(inf.nome); setEdUser(inf.username); setEdLink(inf.link); }}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => remover(inf)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-red-500 hover:text-red-400">
+                    <Trash2Icon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          )
+        )}
+      </div>
+    </div>
+  );
+}
