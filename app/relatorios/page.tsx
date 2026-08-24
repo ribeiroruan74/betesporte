@@ -1,5 +1,4 @@
 "use client";
-
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useBancoDados } from "@/lib/use-banco-dados";
@@ -17,7 +16,6 @@ function normaliza(s: string) {
   return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-// CORREÇÃO: detecta "não postou" com ou sem espaço (nao postou / naopostou)
 function ehNaoPostou(status: string) {
   const n = normaliza(status).replace(/\s+/g, "");
   return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
@@ -90,9 +88,9 @@ export default function RelatoriosPage() {
   const adesao = total > 0 ? Math.round((postaram / total) * 100) : 0;
 
   const kpis = [
-    { label: "Registros", value: total, color: "#0071E3" },
+    { label: "Registros", value: total, color: "#0A84FF" },
     { label: "Postaram", value: postaram, color: "#30D158" },
-    { label: "Não postaram", value: inadimplentes, color: inadimplentes > 0 ? "#FF3B30" : "#30D158" },
+    { label: "Não postaram", value: inadimplentes, color: inadimplentes > 0 ? "#FF453A" : "#30D158" },
     { label: "% adesão", value: `${adesao}%`, color: "#AF52DE" },
   ];
 
@@ -115,27 +113,43 @@ export default function RelatoriosPage() {
         )}
       </div>
 
+      {/* Filtros — grid-cols-1 no mobile para as datas não se sobreporem */}
       <div className="glass-card card-animate mt-6 rounded-2xl p-6">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground">De</label>
-            <input type="date" value={de} onChange={(e) => setDe(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary" />
+            <input
+              type="date"
+              value={de}
+              onChange={(e) => setDe(e.target.value)}
+              className="mt-1 w-full min-w-0 rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Até</label>
-            <input type="date" value={ate} onChange={(e) => setAte(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary" />
+            <input
+              type="date"
+              value={ate}
+              onChange={(e) => setAte(e.target.value)}
+              className="mt-1 w-full min-w-0 rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Mês</label>
-            <input type="month" value={mes} onChange={(e) => setMes(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary" />
+            <input
+              type="month"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              className="mt-1 w-full min-w-0 rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+            />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Influenciador</label>
-            <select value={influenciador} onChange={(e) => setInfluenciador(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary">
+            <select
+              value={influenciador}
+              onChange={(e) => setInfluenciador(e.target.value)}
+              className="mt-1 w-full min-w-0 rounded-lg border border-border bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+            >
               <option value="">Todos</option>
               {nomes.map((n) => (
                 <option key={n} value={n}>{n}</option>
@@ -171,7 +185,10 @@ export default function RelatoriosPage() {
                       <p className="truncate text-sm font-medium text-foreground">{r.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">{r.username} · {r.data}</p>
                     </div>
-                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: meta.color }}>
+                    <span
+                      className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white"
+                      style={{ backgroundColor: meta.color }}
+                    >
                       {meta.label}
                     </span>
                   </div>

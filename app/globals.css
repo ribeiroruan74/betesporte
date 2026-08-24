@@ -231,9 +231,8 @@ table tr:hover,
 [class*="table"] tr:hover {
   background: var(--muted) !important;
 }
-
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior iOS)
+   DOCK FLUTUANTE (barra inferior iOS com degrade azul)
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -244,9 +243,9 @@ table tr:hover,
   display: flex;
   align-items: center;
   justify-content: space-around;
-  height: 64px;
-  padding: 4px 8px;
-  background: rgba(28, 28, 32, 0.75);
+  height: 66px;
+  padding: 5px 8px;
+  background: rgba(24, 24, 28, 0.78);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
   backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--border-strong);
@@ -256,7 +255,7 @@ table tr:hover,
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-.ios-tabbar a {
+.ios-tab-item {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -264,30 +263,44 @@ table tr:hover,
   gap: 3px;
   flex: 1;
   min-width: 0;
-  height: 52px;
-  border-radius: 16px;
+  height: 56px;
+  border-radius: 18px;
   color: var(--color-muted-foreground);
   font-size: 10px;
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
-.ios-tabbar a svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 1.8;
+.ios-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 30px;
+  border-radius: 15px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ios-tabbar a.active {
-  color: var(--color-primary);
-  background: rgba(10, 132, 255, 0.14);
+.ios-tab-icon svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.9;
 }
 
-@media (max-width: 767px) {
-  .ios-tabbar-padding {
-    padding-bottom: 88px !important;
-  }
+/* Aba ativa: pílula com degrade azul (estilo da referência, azul no lugar do verde) */
+.ios-tab-item.active {
+  color: #ffffff;
+}
+
+.ios-tab-item.active .ios-tab-icon {
+  background: linear-gradient(135deg, #0A84FF 0%, #5AC8FA 100%);
+  box-shadow: 0 6px 18px rgba(10, 132, 255, 0.45);
+}
+
+.ios-tab-item.active .ios-tab-label {
+  color: #5AC8FA;
+  font-weight: 600;
 }
 
 /* ============================================================

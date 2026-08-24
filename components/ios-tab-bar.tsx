@@ -27,10 +27,12 @@ export function IosTabBar() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={isActive ? "active" : ""}
+            className={`ios-tab-item ${isActive ? "active" : ""}`}
           >
-            <Icon />
-            <span>{tab.label}</span>
+            <span className="ios-tab-icon">
+              <Icon />
+            </span>
+            <span className="ios-tab-label">{tab.label}</span>
           </Link>
         );
       })}
