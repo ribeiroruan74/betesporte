@@ -2,32 +2,30 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   TEMA AZUL PROFUNDO + SIDEBAR ESTILO REFERÊNCIA — BETesporte
-   Fundo com brilho azul + sidebar navy + gradientes cobalto→ciano
+   TEMA FLAT AZUL ESCURO — BETesporte
+   Sem gradientes, sem glow. Sidebar estilo referência.
    ============================================================ */
 
 :root,
 .dark {
-  --background: #060a14;
-  --foreground: #f5f7ff;
-  --card: rgba(255, 255, 255, 0.06);
-  --card-strong: rgba(255, 255, 255, 0.12);
-  --card-foreground: #f5f7ff;
-  --muted: rgba(255, 255, 255, 0.08);
-  --muted-foreground: #9aa4c0;
-  --border: rgba(120, 160, 255, 0.18);
-  --border-strong: rgba(160, 200, 255, 0.32);
-  --input: rgba(255, 255, 255, 0.08);
-  --primary: #2e5bff;
+  --background: #080a10;
+  --foreground: #f2f4f8;
+  --card: #12151d;
+  --card-strong: #1a1f2b;
+  --card-foreground: #f2f4f8;
+  --muted: #1a1f2b;
+  --muted-foreground: #9aa3b5;
+  --border: #232a38;
+  --border-strong: #2f3849;
+  --input: #12151d;
+  --primary: #0a84ff;
   --primary-foreground: #ffffff;
-  --accent: #00d2ff;
+  --accent: #0a84ff;
   --destructive: #ff453a;
-  --ring: #2e5bff;
-  --radius-lg: 1.5rem;
-  --radius-md: 1rem;
-  --radius-sm: 0.75rem;
-  --glass-blur: 20px;
-  --grad-primary: linear-gradient(135deg, #2e5bff 0%, #00d2ff 100%);
+  --ring: #0a84ff;
+  --radius-lg: 1.25rem;
+  --radius-md: 0.875rem;
+  --radius-sm: 0.625rem;
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
 }
@@ -53,7 +51,7 @@
 }
 
 /* ============================================================
-   BASE
+   BASE — fundo sólido, sem gradiente
    ============================================================ */
 * {
   border-color: var(--color-border);
@@ -72,92 +70,70 @@ body {
   max-width: 100%;
 }
 
-/* Fundo estilo referência: azul profundo com brilho radial (glow) */
-body {
-  background-image:
-    radial-gradient(900px 520px at 12% -8%, rgba(46, 91, 255, 0.35), transparent 60%),
-    radial-gradient(820px 520px at 108% 8%, rgba(0, 210, 255, 0.20), transparent 55%),
-    radial-gradient(720px 600px at 50% 120%, rgba(30, 60, 200, 0.28), transparent 60%),
-    radial-gradient(520px 420px at 86% 92%, rgba(0, 120, 255, 0.16), transparent 60%);
-  background-attachment: fixed;
-}
-
-/* Filhos de flex/grid nunca forçam largura maior que o pai */
 .flex > *:not(.shrink-0),
 .grid > * {
   min-width: 0;
 }
 
 /* ============================================================
-   SIDEBAR — estilo referência (navy sólido + gradiente no ativo)
+   SIDEBAR — estilo referência (flat, sólida, indicador lateral)
    ============================================================ */
 .glass-sidebar,
 aside,
 [class*="sidebar"] {
-  background: linear-gradient(180deg, #0b1224 0%, #070c1a 100%) !important;
+  background-color: #0d0f16 !important;
   border-right: 1px solid var(--border) !important;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: none !important;
 }
 
-/* Item ativo da sidebar: pílula com gradiente azul + brilho (glow) */
+/* Item ativo: fundo sólido + traço lateral azul (indicador) */
 [class*="sidebar"] [data-active="true"],
 [class*="sidebar"] [aria-current="page"],
 [class*="sidebar"] a[class*="active"] {
-  background: var(--grad-primary) !important;
+  background-color: rgba(10, 132, 255, 0.16) !important;
   color: #ffffff !important;
-  box-shadow: 0 6px 22px rgba(46, 91, 255, 0.5) !important;
+  box-shadow: none !important;
+  border-left: 3px solid var(--primary) !important;
+  border-radius: 0.5rem !important;
 }
 
 [class*="sidebar"] [data-active="true"] svg,
 [class*="sidebar"] [aria-current="page"] svg,
 [class*="sidebar"] a[class*="active"] svg {
-  color: #ffffff !important;
+  color: var(--primary) !important;
 }
 
-/* Hover suave nos demais itens */
+/* Hover suave */
 [class*="sidebar"] [class*="menu"] a:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background-color: var(--muted) !important;
 }
 
-/* Logo da sidebar */
+/* Rótulos de seção */
+[class*="sidebar"] [class*="group-label"] {
+  color: var(--muted-foreground) !important;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* Logo */
 [class*="sidebar"] a[href="/"] {
   color: var(--color-foreground);
 }
 
 /* ============================================================
-   VIDRO — cards e painéis
+   CARDS — flat, sem blur excessivo
    ============================================================ */
 .glass-card,
-.glass-panel {
-  background: var(--card);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+.glass-panel,
+.glass-card-strong {
+  background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  max-width: 100%;
-  overflow-wrap: break-word;
-}
-
-.glass-card:hover {
-  background: var(--card-strong);
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.glass-card-strong {
-  background: var(--card-strong);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   max-width: 100%;
   overflow-wrap: break-word;
 }
@@ -167,9 +143,7 @@ aside,
    ============================================================ */
 .glass-header,
 header {
-  background: rgba(6, 10, 20, 0.72) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
+  background-color: rgba(8, 10, 16, 0.9) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
@@ -179,12 +153,10 @@ header {
 input,
 select,
 textarea {
-  background: var(--input) !important;
+  background-color: var(--input) !important;
   color: var(--color-foreground) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 0.75rem !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  backdrop-filter: blur(12px) !important;
+  border-radius: 0.625rem !important;
   max-width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -198,13 +170,11 @@ select:focus,
 textarea:focus {
   border-color: var(--color-ring) !important;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(46, 91, 255, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2) !important;
 }
 
 [class*="bg-white/"] {
-  background: var(--card) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
-  backdrop-filter: blur(var(--glass-blur)) !important;
+  background-color: var(--card) !important;
 }
 
 [class*="text-muted-foreground"],
@@ -213,30 +183,26 @@ textarea:focus {
 }
 
 /* ============================================================
-   BOTÕES — gradiente azul (cobalto → ciano)
+   BOTÕES — sólidos, sem gradiente
    ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
-  background: var(--grad-primary) !important;
+  background-color: var(--primary) !important;
   color: var(--color-primary-foreground) !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 6px 20px rgba(46, 91, 255, 0.4) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  border: none !important;
+  box-shadow: none !important;
 }
 button[class*="bg-primary"]:hover,
 a[class*="bg-primary"]:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 8px 26px rgba(46, 91, 255, 0.55) !important;
+  background-color: #0a6fd6 !important;
 }
 button[class*="border"]:not([class*="bg-primary"]) {
-  background: var(--card) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  backdrop-filter: blur(12px) !important;
+  background-color: var(--card) !important;
   border: 1px solid var(--border) !important;
   color: var(--color-foreground) !important;
 }
 button[class*="border"]:not([class*="bg-primary"]):hover {
-  background: var(--card-strong) !important;
+  background-color: var(--muted) !important;
 }
 
 /* ============================================================
@@ -244,17 +210,12 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
    ============================================================ */
 [class*="fixed"] [class*="rounded"],
 [role="dialog"] {
-  background: rgba(13, 20, 40, 0.88) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
-  backdrop-filter: blur(32px) saturate(180%) !important;
+  background-color: var(--card) !important;
   border: 1px solid var(--border-strong) !important;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55) !important;
   max-width: 100%;
 }
 [class*="fixed"] {
-  background: rgba(2, 5, 12, 0.65) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  backdrop-filter: blur(6px) !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
 }
 
 /* ============================================================
@@ -277,11 +238,11 @@ table tr,
 }
 table tr:hover,
 [class*="table"] tr:hover {
-  background: var(--muted) !important;
+  background-color: var(--muted) !important;
 }
 
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior com gradiente azul no ativo)
+   DOCK FLUTUANTE (barra inferior, sem gradiente)
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -292,16 +253,12 @@ table tr:hover,
   display: flex;
   align-items: center;
   justify-content: space-around;
-  height: 66px;
+  height: 64px;
   padding: 5px 8px;
-  background: rgba(13, 20, 40, 0.82);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  backdrop-filter: blur(28px) saturate(190%);
+  background-color: rgba(18, 21, 29, 0.92);
   border: 1px solid var(--border-strong);
   border-radius: 24px;
-  box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .ios-tab-item {
@@ -312,13 +269,13 @@ table tr:hover,
   gap: 3px;
   flex: 1;
   min-width: 0;
-  height: 56px;
-  border-radius: 18px;
+  height: 54px;
+  border-radius: 16px;
   color: var(--color-muted-foreground);
   font-size: 10px;
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .ios-tab-icon {
@@ -328,7 +285,7 @@ table tr:hover,
   width: 44px;
   height: 30px;
   border-radius: 15px;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .ios-tab-icon svg {
@@ -338,22 +295,21 @@ table tr:hover,
 }
 
 .ios-tab-item.active {
-  color: #ffffff;
+  color: var(--primary);
 }
 
 .ios-tab-item.active .ios-tab-icon {
-  background: var(--grad-primary);
-  box-shadow: 0 6px 18px rgba(46, 91, 255, 0.5);
+  background-color: rgba(10, 132, 255, 0.18);
 }
 
 .ios-tab-item.active .ios-tab-label {
-  color: #5ac8fa;
+  color: var(--primary);
   font-weight: 600;
 }
 
 @media (max-width: 767px) {
   .ios-tabbar-padding {
-    padding-bottom: 88px !important;
+    padding-bottom: 84px !important;
   }
 }
 
@@ -378,7 +334,7 @@ table tr:hover,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 150, 220, 0.3);
+  background: rgba(140, 150, 175, 0.3);
   border-radius: 8px;
 }
 
