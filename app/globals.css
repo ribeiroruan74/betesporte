@@ -2,8 +2,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   VIDRO LÍQUIDO — BETesporte Mobile
-   Fundo escuro profundo + glassmorphism + laterais fixas
+   VIDRO LÍQUIDO + RESPONSIVIDADE — BETesporte Mobile
    ============================================================ */
 
 :root,
@@ -18,7 +17,7 @@
   --border: rgba(255, 255, 255, 0.12);
   --border-strong: rgba(255, 255, 255, 0.22);
   --input: rgba(255, 255, 255, 0.08);
-  --primary: #0a84ff;          /* azul vibrante iOS */
+  --primary: #0a84ff;
   --primary-foreground: #ffffff;
   --accent: #0a84ff;
   --destructive: #ff453a;
@@ -51,8 +50,12 @@
   --font-sans: var(--font-sans);
 }
 
+/* ============================================================
+   BASE — sem rolagem horizontal em lugar nenhum
+   ============================================================ */
 * {
   border-color: var(--color-border);
+  box-sizing: border-box;
 }
 
 html,
@@ -63,9 +66,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
-/* ---------- Fundo com brilho suave (para o vidro desfocar) ---------- */
 body {
   background-image:
     radial-gradient(1000px 600px at 10% -5%, rgba(10, 132, 255, 0.14), transparent 60%),
@@ -74,11 +78,15 @@ body {
   background-attachment: fixed;
 }
 
+/* Filhos de flex/grid nunca forçam largura maior que o pai */
+.flex > *:not(.shrink-0),
+.grid > * {
+  min-width: 0;
+}
+
 /* ============================================================
    VIDRO LÍQUIDO — cards, painéis e barras
    ============================================================ */
-
-/* Card de vidro base (flutua sobre o fundo) */
 .glass-card,
 .glass-panel {
   background: var(--card);
@@ -90,6 +98,8 @@ body {
     0 8px 32px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .glass-card:hover {
@@ -99,7 +109,6 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-/* Card mais opaco (para áreas densas: tabelas, formulários) */
 .glass-card-strong {
   background: var(--card-strong);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
@@ -109,9 +118,10 @@ body {
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
-/* ---------- Sidebar de vidro (desktop) — fixa à esquerda ---------- */
 .glass-sidebar,
 aside,
 [class*="sidebar"] {
@@ -122,7 +132,6 @@ aside,
   box-shadow: 8px 0 32px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* ---------- Header de vidro (fixo no topo) ---------- */
 .glass-header,
 header {
   background: rgba(10, 10, 12, 0.72) !important;
@@ -131,7 +140,6 @@ header {
   border-bottom: 1px solid var(--border) !important;
 }
 
-/* ---------- Inputs, selects e textareas (vidro) ---------- */
 input,
 select,
 textarea {
@@ -141,6 +149,7 @@ textarea {
   border-radius: 0.75rem !important;
   -webkit-backdrop-filter: blur(12px) !important;
   backdrop-filter: blur(12px) !important;
+  max-width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 input::placeholder,
@@ -156,20 +165,17 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
 }
 
-/* Corrige classes claras fixas que quebram o vidro */
 [class*="bg-white/"] {
   background: var(--card) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
   backdrop-filter: blur(var(--glass-blur)) !important;
 }
 
-/* Texto auxiliar legível */
 [class*="text-muted-foreground"],
 .text-muted-foreground {
   color: var(--color-muted-foreground) !important;
 }
 
-/* ---------- Botões ---------- */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
   background: linear-gradient(135deg, #0a84ff, #5ac8fa) !important;
@@ -188,7 +194,6 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
   background: var(--card-strong) !important;
 }
 
-/* ---------- Modais (vidro forte) ---------- */
 [class*="fixed"] [class*="rounded"],
 [role="dialog"] {
   background: rgba(28, 28, 32, 0.85) !important;
@@ -196,6 +201,7 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
   backdrop-filter: blur(32px) saturate(180%) !important;
   border: 1px solid var(--border-strong) !important;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5) !important;
+  max-width: 100%;
 }
 [class*="fixed"] {
   background: rgba(0, 0, 0, 0.6) !important;
@@ -203,7 +209,20 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
   backdrop-filter: blur(6px) !important;
 }
 
-/* ---------- Tabelas ---------- */
+/* ============================================================
+   TABELAS — rolam dentro do card (sem empurrar a página)
+   ============================================================ */
+table,
+[class*="table"] {
+  max-width: 100%;
+}
+[class*="overflow-x-auto"] table,
+table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 table tr,
 [class*="table"] tr {
   border-bottom: 1px solid var(--border) !important;
@@ -213,21 +232,8 @@ table tr:hover,
   background: var(--muted) !important;
 }
 
-/* ---------- Scrollbar ---------- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(140, 150, 175, 0.3);
-  border-radius: 8px;
-}
-
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior iOS com vidro líquido)
+   DOCK FLUTUANTE (barra inferior iOS)
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -257,6 +263,7 @@ table tr:hover,
   justify-content: center;
   gap: 3px;
   flex: 1;
+  min-width: 0;
   height: 52px;
   border-radius: 16px;
   color: var(--color-muted-foreground);
@@ -277,7 +284,6 @@ table tr:hover,
   background: rgba(10, 132, 255, 0.14);
 }
 
-/* Conteúdo com espaço para o dock flutuante no mobile */
 @media (max-width: 767px) {
   .ios-tabbar-padding {
     padding-bottom: 88px !important;
@@ -294,7 +300,21 @@ table tr:hover,
   }
 }
 
-/* ---------- Animações ---------- */
+/* ============================================================
+   SCROLLBAR + ANIMAÇÕES
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 150, 175, 0.3);
+  border-radius: 8px;
+}
+
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
