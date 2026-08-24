@@ -2,30 +2,32 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   VIDRO LÍQUIDO + RESPONSIVIDADE — BETesporte Mobile
+   TEMA AZUL PROFUNDO + SIDEBAR ESTILO REFERÊNCIA — BETesporte
+   Fundo com brilho azul + sidebar navy + gradientes cobalto→ciano
    ============================================================ */
 
 :root,
 .dark {
-  --background: #0a0a0c;
-  --foreground: #f5f5f7;
+  --background: #060a14;
+  --foreground: #f5f7ff;
   --card: rgba(255, 255, 255, 0.06);
-  --card-strong: rgba(255, 255, 255, 0.1);
-  --card-foreground: #f5f5f7;
+  --card-strong: rgba(255, 255, 255, 0.12);
+  --card-foreground: #f5f7ff;
   --muted: rgba(255, 255, 255, 0.08);
-  --muted-foreground: #98989d;
-  --border: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.22);
+  --muted-foreground: #9aa4c0;
+  --border: rgba(120, 160, 255, 0.18);
+  --border-strong: rgba(160, 200, 255, 0.32);
   --input: rgba(255, 255, 255, 0.08);
-  --primary: #0a84ff;
+  --primary: #2e5bff;
   --primary-foreground: #ffffff;
-  --accent: #0a84ff;
+  --accent: #00d2ff;
   --destructive: #ff453a;
-  --ring: #0a84ff;
+  --ring: #2e5bff;
   --radius-lg: 1.5rem;
   --radius-md: 1rem;
   --radius-sm: 0.75rem;
   --glass-blur: 20px;
+  --grad-primary: linear-gradient(135deg, #2e5bff 0%, #00d2ff 100%);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
 }
@@ -51,7 +53,7 @@
 }
 
 /* ============================================================
-   BASE — sem rolagem horizontal em lugar nenhum
+   BASE
    ============================================================ */
 * {
   border-color: var(--color-border);
@@ -60,7 +62,7 @@
 
 html,
 body {
-  background-color: var(--color-background);
+  background-color: var(--background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -70,11 +72,13 @@ body {
   max-width: 100%;
 }
 
+/* Fundo estilo referência: azul profundo com brilho radial (glow) */
 body {
   background-image:
-    radial-gradient(1000px 600px at 10% -5%, rgba(10, 132, 255, 0.14), transparent 60%),
-    radial-gradient(800px 500px at 110% 15%, rgba(175, 82, 222, 0.1), transparent 55%),
-    radial-gradient(700px 500px at 50% 120%, rgba(90, 200, 250, 0.08), transparent 60%);
+    radial-gradient(900px 520px at 12% -8%, rgba(46, 91, 255, 0.35), transparent 60%),
+    radial-gradient(820px 520px at 108% 8%, rgba(0, 210, 255, 0.20), transparent 55%),
+    radial-gradient(720px 600px at 50% 120%, rgba(30, 60, 200, 0.28), transparent 60%),
+    radial-gradient(520px 420px at 86% 92%, rgba(0, 120, 255, 0.16), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -85,7 +89,43 @@ body {
 }
 
 /* ============================================================
-   VIDRO LÍQUIDO — cards, painéis e barras
+   SIDEBAR — estilo referência (navy sólido + gradiente no ativo)
+   ============================================================ */
+.glass-sidebar,
+aside,
+[class*="sidebar"] {
+  background: linear-gradient(180deg, #0b1224 0%, #070c1a 100%) !important;
+  border-right: 1px solid var(--border) !important;
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Item ativo da sidebar: pílula com gradiente azul + brilho (glow) */
+[class*="sidebar"] [data-active="true"],
+[class*="sidebar"] [aria-current="page"],
+[class*="sidebar"] a[class*="active"] {
+  background: var(--grad-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 22px rgba(46, 91, 255, 0.5) !important;
+}
+
+[class*="sidebar"] [data-active="true"] svg,
+[class*="sidebar"] [aria-current="page"] svg,
+[class*="sidebar"] a[class*="active"] svg {
+  color: #ffffff !important;
+}
+
+/* Hover suave nos demais itens */
+[class*="sidebar"] [class*="menu"] a:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Logo da sidebar */
+[class*="sidebar"] a[href="/"] {
+  color: var(--color-foreground);
+}
+
+/* ============================================================
+   VIDRO — cards e painéis
    ============================================================ */
 .glass-card,
 .glass-panel {
@@ -96,7 +136,7 @@ body {
   border-radius: var(--radius-lg);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -106,7 +146,7 @@ body {
   background: var(--card-strong);
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .glass-card-strong {
@@ -122,24 +162,20 @@ body {
   overflow-wrap: break-word;
 }
 
-.glass-sidebar,
-aside,
-[class*="sidebar"] {
-  background: rgba(20, 20, 24, 0.7) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  border-right: 1px solid var(--border) !important;
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.3) !important;
-}
-
+/* ============================================================
+   HEADER
+   ============================================================ */
 .glass-header,
 header {
-  background: rgba(10, 10, 12, 0.72) !important;
+  background: rgba(6, 10, 20, 0.72) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
+/* ============================================================
+   INPUTS
+   ============================================================ */
 input,
 select,
 textarea {
@@ -154,7 +190,7 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  color: #6e6e73 !important;
+  color: #6e7aa0 !important;
   opacity: 1;
 }
 input:focus,
@@ -162,7 +198,7 @@ select:focus,
 textarea:focus {
   border-color: var(--color-ring) !important;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(46, 91, 255, 0.25) !important;
 }
 
 [class*="bg-white/"] {
@@ -176,12 +212,21 @@ textarea:focus {
   color: var(--color-muted-foreground) !important;
 }
 
+/* ============================================================
+   BOTÕES — gradiente azul (cobalto → ciano)
+   ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
-  background: linear-gradient(135deg, #0a84ff, #5ac8fa) !important;
+  background: var(--grad-primary) !important;
   color: var(--color-primary-foreground) !important;
   border: 1px solid rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 6px 20px rgba(10, 132, 255, 0.35) !important;
+  box-shadow: 0 6px 20px rgba(46, 91, 255, 0.4) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+button[class*="bg-primary"]:hover,
+a[class*="bg-primary"]:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 26px rgba(46, 91, 255, 0.55) !important;
 }
 button[class*="border"]:not([class*="bg-primary"]) {
   background: var(--card) !important;
@@ -194,23 +239,26 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
   background: var(--card-strong) !important;
 }
 
+/* ============================================================
+   MODAIS
+   ============================================================ */
 [class*="fixed"] [class*="rounded"],
 [role="dialog"] {
-  background: rgba(28, 28, 32, 0.85) !important;
+  background: rgba(13, 20, 40, 0.88) !important;
   -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
   backdrop-filter: blur(32px) saturate(180%) !important;
   border: 1px solid var(--border-strong) !important;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55) !important;
   max-width: 100%;
 }
 [class*="fixed"] {
-  background: rgba(0, 0, 0, 0.6) !important;
+  background: rgba(2, 5, 12, 0.65) !important;
   -webkit-backdrop-filter: blur(6px) !important;
   backdrop-filter: blur(6px) !important;
 }
 
 /* ============================================================
-   TABELAS — rolam dentro do card (sem empurrar a página)
+   TABELAS
    ============================================================ */
 table,
 [class*="table"] {
@@ -231,8 +279,9 @@ table tr:hover,
 [class*="table"] tr:hover {
   background: var(--muted) !important;
 }
+
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior iOS com degrade azul)
+   DOCK FLUTUANTE (barra inferior com gradiente azul no ativo)
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -245,7 +294,7 @@ table tr:hover,
   justify-content: space-around;
   height: 66px;
   padding: 5px 8px;
-  background: rgba(24, 24, 28, 0.78);
+  background: rgba(13, 20, 40, 0.82);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
   backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--border-strong);
@@ -288,19 +337,24 @@ table tr:hover,
   stroke-width: 1.9;
 }
 
-/* Aba ativa: pílula com degrade azul (estilo da referência, azul no lugar do verde) */
 .ios-tab-item.active {
   color: #ffffff;
 }
 
 .ios-tab-item.active .ios-tab-icon {
-  background: linear-gradient(135deg, #0A84FF 0%, #5AC8FA 100%);
-  box-shadow: 0 6px 18px rgba(10, 132, 255, 0.45);
+  background: var(--grad-primary);
+  box-shadow: 0 6px 18px rgba(46, 91, 255, 0.5);
 }
 
 .ios-tab-item.active .ios-tab-label {
-  color: #5AC8FA;
+  color: #5ac8fa;
   font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .ios-tabbar-padding {
+    padding-bottom: 88px !important;
+  }
 }
 
 /* ============================================================
@@ -324,7 +378,7 @@ table tr:hover,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(140, 150, 175, 0.3);
+  background: rgba(120, 150, 220, 0.3);
   border-radius: 8px;
 }
 
