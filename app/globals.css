@@ -1,25 +1,30 @@
 @import "tailwindcss";
 
 /* ============================================================
-   TEMA ESCURO PADRÃO — BETesporte (flat, alto contraste)
-   Todas as abas ficam com fundo escuro + texto claro legível
+   TEMA iOS DARK — BETesporte Mobile
+   Fundo escuro, fonte SF Pro, azul vibrante #0A84FF
    ============================================================ */
 
 :root,
 .dark {
-  --background: #0b0f1a;
-  --foreground: #f4f6fb;
-  --card: #141a29;
-  --card-foreground: #f4f6fb;
-  --muted: #1c2436;
-  --muted-foreground: #a8b0c0;
-  --border: #27314a;
-  --input: #1c2436;
-  --primary: #0071e3;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #1c1c1e;
+  --card-foreground: #ffffff;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --border: #38383a;
+  --input: #1c1c1e;
+  --primary: #0a84ff;      /* iOS system blue vibrante */
   --primary-foreground: #ffffff;
-  --accent: #a855f7;
-  --destructive: #ff3b30;
-  --ring: #0071e3;
+  --accent: #0a84ff;
+  --destructive: #ff453a;
+  --ring: #0a84ff;
+  --radius-lg: 1.25rem;
+  --radius-md: 0.875rem;
+  --radius-sm: 0.625rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 @theme inline {
@@ -36,10 +41,10 @@
   --color-accent: var(--accent);
   --color-destructive: var(--destructive);
   --color-ring: var(--ring);
-  --radius-lg: 1.25rem;
-  --radius-md: 0.875rem;
-  --radius-sm: 0.625rem;
-  --font-sans: "Inter", "Poppins", "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius-lg: var(--radius-lg);
+  --radius-md: var(--radius-md);
+  --radius-sm: var(--radius-sm);
+  --font-sans: var(--font-sans);
 }
 
 * {
@@ -53,9 +58,10 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------- Cards (flat, escuros, sem blur/sombra) ---------- */
+/* ---------- Cards (iOS: escuros, cantos arredondados) ---------- */
 .glass-card,
 .glass-card-strong,
 .glass-panel {
@@ -67,22 +73,24 @@ body {
   -webkit-backdrop-filter: none !important;
 }
 
-/* ---------- Sidebar ---------- */
+/* ---------- Sidebar (desktop) ---------- */
 .glass-sidebar,
 aside,
 [class*="sidebar"] {
-  background-color: #0e1320 !important;
+  background-color: #0c0c0e !important;
   border-right: 1px solid var(--color-border) !important;
 }
 
 /* ---------- Header ---------- */
 .glass-header,
 header {
-  background-color: rgba(11, 15, 26, 0.9) !important;
+  background-color: rgba(0, 0, 0, 0.85) !important;
   border-bottom: 1px solid var(--color-border) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
-/* ---------- Inputs, selects e textareas (sempre escuros) ---------- */
+/* ---------- Inputs, selects e textareas ---------- */
 input,
 select,
 textarea {
@@ -93,7 +101,7 @@ textarea {
 }
 input::placeholder,
 textarea::placeholder {
-  color: #8a93a6 !important;
+  color: #6e6e73 !important;
   opacity: 1;
 }
 input:focus,
@@ -101,29 +109,27 @@ select:focus,
 textarea:focus {
   border-color: var(--color-ring) !important;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25) !important;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
 }
 
-/* ---------- Corrige classes claras fixas que quebram o contraste ---------- */
+/* ---------- Corrige classes claras fixas ---------- */
 [class*="bg-white/"] {
   background-color: var(--color-card) !important;
 }
 
-/* ---------- Texto auxiliar sempre legível ---------- */
+/* ---------- Texto auxiliar legível ---------- */
 [class*="text-muted-foreground"],
 .text-muted-foreground {
   color: var(--color-muted-foreground) !important;
 }
 
 /* ---------- Botões ---------- */
-/* Primário */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
   background-color: var(--color-primary) !important;
   color: var(--color-primary-foreground) !important;
   border: none !important;
 }
-/* Secundário / contorno */
 button[class*="border"]:not([class*="bg-primary"]) {
   background-color: var(--color-card) !important;
   border: 1px solid var(--color-border) !important;
@@ -141,7 +147,7 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
   color: var(--color-foreground) !important;
 }
 [class*="fixed"] {
-  background-color: rgba(0, 0, 0, 0.65) !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 /* ---------- Tabelas ---------- */
@@ -156,14 +162,14 @@ table tr:hover,
 
 /* ---------- Scrollbar ---------- */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(140, 150, 175, 0.35);
+  background: rgba(140, 150, 175, 0.3);
   border-radius: 8px;
 }
 
@@ -178,3 +184,52 @@ table tr:hover,
 }
 .card-animate { animation: fadeInUp 0.45s ease both; }
 .modal-animate { animation: scaleIn 0.25s ease both; }
+
+/* ---------- Tab bar iOS (barra inferior) ---------- */
+.ios-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 56px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  background-color: rgba(18, 18, 20, 0.92);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--color-border);
+}
+
+.ios-tabbar a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 60px;
+  color: var(--color-muted-foreground);
+  font-size: 10px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ios-tabbar a.active {
+  color: var(--color-primary);
+}
+
+.ios-tabbar a svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.8;
+}
+
+/* Conteúdo com espaço para a tab bar no mobile */
+@media (max-width: 767px) {
+  .ios-tabbar-padding {
+    padding-bottom: 72px !important;
+  }
+}
