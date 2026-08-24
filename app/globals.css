@@ -2,26 +2,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   TEMA FLAT AZUL ESCURO — BETesporte
-   Sem gradientes, sem glow. Sidebar estilo referência.
+   TEMA ESCURO SIMPLES — BETesporte (restaurado)
+   Flat, sem vidro, sem gradiente, sem brilho
    ============================================================ */
 
 :root,
 .dark {
-  --background: #080a10;
-  --foreground: #f2f4f8;
-  --card: #12151d;
-  --card-strong: #1a1f2b;
-  --card-foreground: #f2f4f8;
-  --muted: #1a1f2b;
-  --muted-foreground: #9aa3b5;
-  --border: #232a38;
-  --border-strong: #2f3849;
-  --input: #12151d;
+  --background: #0b0f1a;
+  --foreground: #f4f6fb;
+  --card: #141a29;
+  --card-strong: #1c2436;
+  --card-foreground: #f4f6fb;
+  --muted: #1c2436;
+  --muted-foreground: #a8b0c0;
+  --border: #27314a;
+  --border-strong: #35405c;
+  --input: #1c2436;
   --primary: #0a84ff;
   --primary-foreground: #ffffff;
   --accent: #0a84ff;
-  --destructive: #ff453a;
+  --destructive: #ff3b30;
   --ring: #0a84ff;
   --radius-lg: 1.25rem;
   --radius-md: 0.875rem;
@@ -50,9 +50,6 @@
   --font-sans: var(--font-sans);
 }
 
-/* ============================================================
-   BASE — fundo sólido, sem gradiente
-   ============================================================ */
 * {
   border-color: var(--color-border);
   box-sizing: border-box;
@@ -76,34 +73,33 @@ body {
 }
 
 /* ============================================================
-   SIDEBAR — estilo referência (flat, sólida, indicador lateral)
+   SIDEBAR — flat, limpa, sem gradiente
    ============================================================ */
 .glass-sidebar,
 aside,
 [class*="sidebar"] {
-  background-color: #0d0f16 !important;
+  background-color: #0e1320 !important;
   border-right: 1px solid var(--border) !important;
   box-shadow: none !important;
 }
 
-/* Item ativo: fundo sólido + traço lateral azul (indicador) */
+/* Item ativo: fundo azul suave, sem brilho, sem traço */
 [class*="sidebar"] [data-active="true"],
 [class*="sidebar"] [aria-current="page"],
 [class*="sidebar"] a[class*="active"] {
-  background-color: rgba(10, 132, 255, 0.16) !important;
+  background-color: rgba(10, 132, 255, 0.14) !important;
   color: #ffffff !important;
   box-shadow: none !important;
-  border-left: 3px solid var(--primary) !important;
   border-radius: 0.5rem !important;
 }
 
 [class*="sidebar"] [data-active="true"] svg,
 [class*="sidebar"] [aria-current="page"] svg,
 [class*="sidebar"] a[class*="active"] svg {
-  color: var(--primary) !important;
+  color: #ffffff !important;
 }
 
-/* Hover suave */
+/* Hover suave nos demais itens */
 [class*="sidebar"] [class*="menu"] a:hover {
   background-color: var(--muted) !important;
 }
@@ -111,10 +107,6 @@ aside,
 /* Rótulos de seção */
 [class*="sidebar"] [class*="group-label"] {
   color: var(--muted-foreground) !important;
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  font-weight: 600;
 }
 
 /* Logo */
@@ -123,7 +115,7 @@ aside,
 }
 
 /* ============================================================
-   CARDS — flat, sem blur excessivo
+   CARDS — flat
    ============================================================ */
 .glass-card,
 .glass-panel,
@@ -143,7 +135,7 @@ aside,
    ============================================================ */
 .glass-header,
 header {
-  background-color: rgba(8, 10, 16, 0.9) !important;
+  background-color: rgba(11, 15, 26, 0.92) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
@@ -183,7 +175,7 @@ textarea:focus {
 }
 
 /* ============================================================
-   BOTÕES — sólidos, sem gradiente
+   BOTÕES — sólidos
    ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
@@ -219,7 +211,7 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
 }
 
 /* ============================================================
-   TABELAS
+   TABELAS — rolam dentro do card
    ============================================================ */
 table,
 [class*="table"] {
@@ -242,7 +234,7 @@ table tr:hover,
 }
 
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior, sem gradiente)
+   DOCK FLUTUANTE (barra inferior) — flat, azul no ativo
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -255,7 +247,7 @@ table tr:hover,
   justify-content: space-around;
   height: 64px;
   padding: 5px 8px;
-  background-color: rgba(18, 21, 29, 0.92);
+  background-color: rgba(18, 21, 29, 0.95);
   border: 1px solid var(--border-strong);
   border-radius: 24px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
@@ -346,11 +338,10 @@ table tr:hover,
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
-.card-animate { animation: fadeInUp 0.45s ease both; }
-.modal-animate { animation: scaleIn 0.25s ease both; }
-/* Toast */
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(-14px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.card-animate { animation: fadeInUp 0.45s ease both; }
+.modal-animate { animation: scaleIn 0.25s ease both; }
 .toast-animate { animation: toastIn 0.28s ease both; }

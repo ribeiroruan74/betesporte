@@ -15,6 +15,16 @@ function normaliza(s: string) {
   return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
 }
 
+function InstagramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
 export default function RegistroPage() {
   const { influencers, loading } = useInfluencers();
   const { mostrar } = useToast();
@@ -146,6 +156,11 @@ export default function RegistroPage() {
   }
 
   const inf = influencers[currentIndex];
+  const instagramUrl = inf?.link
+    ? inf.link
+    : inf?.username
+      ? `https://www.instagram.com/${inf.username.replace(/^@/, "")}`
+      : "";
 
   return (
     <AppShell>
@@ -184,7 +199,22 @@ export default function RegistroPage() {
           </button>
           <div className="min-w-0 flex-1 text-center">
             <p className="truncate text-lg font-semibold text-foreground">{inf?.name}</p>
-            <p className="truncate text-sm text-muted-foreground">{inf?.username} · {currentIndex + 1} de {influencers.length}</p>
+            <div className="mt-0.5 flex items-center justify-center gap-2">
+              <p className="truncate text-sm text-muted-foreground">
+                {inf?.username} · {currentIndex + 1} de {influencers.length}
+              </p>
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir Instagram"
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-[#E1306C] hover:text-[#E1306C]"
+                >
+                  <InstagramIcon className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
           </div>
           <button
             onClick={() => setCurrentIndex(Math.min(influencers.length - 1, currentIndex + 1))}
