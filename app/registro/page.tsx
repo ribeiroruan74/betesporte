@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
 
@@ -31,6 +31,7 @@ export default function RegistroPage() {
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<StatusType[]>([]);
   const [saving, setSaving] = useState(false);
+  const [showSeletor, setShowSeletor] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carrega o último índice salvo quando os influenciadores carregam
@@ -127,6 +128,7 @@ export default function RegistroPage() {
     setStatuses({});
     setSelected([]);
     setCurrentIndex(0);
+    setShowSeletor(false);
   }
 
   if (loading) {
@@ -189,6 +191,48 @@ export default function RegistroPage() {
       </div>
 
       <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+        {/* Botão/select: ir para um influenciador específico */}
+        <div className="mb-4">
+          {!showSeletor ? (
+            <button
+              onClick={() => setShowSeletor(true)}
+              className="flex w-full items-center justify-between rounded-xl border border-border bg-white/70 px-3 py-2.5 text-sm text-foreground transition hover:bg-muted"
+            >
+              <span className="flex items-center gap-2">
+                <UserRoundIcon className="h-4 w-4 text-muted-foreground" />
+                Ir para influenciador específico...
+              </span>
+              <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <select
+                autoFocus
+                value={currentIndex}
+                onChange={(e) => {
+                  setCurrentIndex(parseInt(e.target.value, 10));
+                  setSelected([]);
+                  if (timerRef.current) clearTimeout(timerRef.current);
+                }}
+                className="w-full rounded-xl border border-border bg-white/70 px-3 py-2.5 text-sm outline-none focus:border-primary"
+              >
+                {influencers.map((inf, idx) => (
+                  <option key={inf.id ?? idx} value={idx}>
+                    {idx + 1}. {inf.name} {inf.username ? `(${inf.username})` : ""}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => setShowSeletor(false)}
+                className="shrink-0 rounded-xl border border-border px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-muted"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Ícone do influenciador (avatar com inicial) + nome */}
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
             {current.name.charAt(0)}
@@ -197,19 +241,22 @@ export default function RegistroPage() {
             <p className="truncate text-lg font-semibold text-foreground">{current.name}</p>
             <p className="truncate text-sm text-muted-foreground">{current.username}</p>
           </div>
-          {instagramUrl && (
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-border bg-white/70 px-3 py-2 text-xs font-medium text-foreground transition hover:border-[#E1306C] hover:text-[#E1306C]"
-            >
-              <InstagramIcon className="h-4 w-4" />
-              Abrir Instagram
-            </a>
-          )}
         </div>
 
+        {/* Botão GRANDE de abrir Instagram */}
+        {instagramUrl && (
+          <a
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E1306C] py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.01] hover:bg-[#C72B60] hover:shadow-xl active:scale-95"
+          >
+            <InstagramIcon className="h-5 w-5" />
+            Abrir Instagram
+          </a>
+        )}
+
+        {/* Status (grade 2x2) */}
         <div className="mt-5 grid grid-cols-2 gap-3">
           {(Object.keys(STATUS_CONFIG) as StatusType[])
             .filter((s) => s !== "nao-postou")
@@ -246,6 +293,7 @@ export default function RegistroPage() {
           🚫 Não Postou
         </button>
 
+        {/* Linha selecionada aguardando salvar */}
         {selected.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/60 p-3">
             <span className="text-sm font-medium text-foreground">{combinedLabel()}</span>
