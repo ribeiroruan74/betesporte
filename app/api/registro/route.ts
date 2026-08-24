@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
 import { sheets, SPREADSHEET_ID } from "@/lib/sheets";
 
-function todayStr() {
-  const d = new Date();
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+const FUSO = "America/Sao_Paulo";
+
+// Retorna a data de hoje no fuso do Brasil no formato dd/mm/aaaa
+function hojeSP() {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: FUSO,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
 }
 
-function sameDate(cell: unknown, date: Date) {
+// Retorna os componentes (dia, mes, ano) de hoje no fuso do Brasil
+function hojeComponentes() {
+  const p = hojeSP().split("/");
+  return { dia: parseInt(p[0]), mes: parseInt(p[1]), ano: parseInt(p[2]) };
+}
+
+function sameDate(cell: unknown) {
   if (!cell) return false;
   const s = String(cell).trim();
   if (!s.includes("/")) return false;
@@ -14,7 +27,8 @@ function sameDate(cell: unknown, date: Date) {
   const dia = parseInt(p[0]);
   const mes = parseInt(p[1]);
   const ano = parseInt(p[2]);
-  return dia === date.getDate() && mes === date.getMonth() + 1 && (ano === date.getFullYear() || ano === date.getFullYear() % 100);
+  const h = hojeComponentes();
+  return dia === h.dia && mes === h.mes && (ano === h.ano || ano === h.ano % 100);
 }
 
 export async function POST(req: Request) {
@@ -23,8 +37,6 @@ export async function POST(req: Request) {
     if (!name || !status) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
-
-    const today = new Date();
 
     // ===== 1. Lê ACOMPANHAMENTO para achar coluna de hoje e o @username =====
     const res = await sheets.spreadsheets.values.get({
@@ -38,7 +50,7 @@ export async function POST(req: Request) {
     let dataRow = 1;
     for (let r = 0; r <= 1; r++) {
       for (let c = 0; c < (rows[r] || []).length; c++) {
-        if (sameDate(rows[r][c], today)) { statusCol = c; dataRow = r; break; }
+        if (sameDate(rows[r][c])) { statusCol = c; dataRow = r; break; }
       }
       if (statusCol >= 0) break;
     }
@@ -64,8 +76,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // ===== 3. Salva/atualiza no BANCO_DE_DADOS =====
-    const hoje = todayStr();
+    // ===== 3. Salva/atualiza no BANCO_DE_DADOS (com a data correta do Brasil) =====
+    const hoje = hojeSP();
     const bancoRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "BANCO_DE_DADOS!A1:D2000",
@@ -73,7 +85,6 @@ export async function POST(req: Request) {
     });
     const bancoRows = bancoRes.data.values || [];
 
-    // Detecta o cabeçalho e as colunas
     let headerRow = 0;
     let colData = 0, colNome = 1, colUser = 2, colStatus = 3;
     for (let r = 0; r < Math.min(bancoRows.length, 5); r++) {
@@ -90,7 +101,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Procura linha existente com data de hoje + nome
     let existingRow = -1;
     for (let r = headerRow + 1; r < bancoRows.length; r++) {
       const row = bancoRows[r] || [];
@@ -100,7 +110,6 @@ export async function POST(req: Request) {
     }
 
     if (existingRow >= 0) {
-      // Atualiza o status da linha existente
       const colLetter = String.fromCharCode(65 + colStatus);
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
@@ -109,7 +118,6 @@ export async function POST(req: Request) {
         requestBody: { values: [[status]] },
       });
     } else {
-      // Adiciona nova linha no BANCO_DE_DADOS
       const maxCol = Math.max(colData, colNome, colUser, colStatus);
       const values: string[] = [];
       for (let i = 0; i <= maxCol; i++) values.push("");
