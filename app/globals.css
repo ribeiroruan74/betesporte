@@ -402,3 +402,55 @@ table tr:hover,
 [class*="sidebar"] [class*="caret"] {
   color: rgba(255, 255, 255, 0.4) !important;
 }
+/* ============================================================
+   SIDEBAR — minimalista (estilo antigo)
+   Simples, flat, sem badges, sem uppercase forçado
+   ============================================================ */
+[class*="sidebar"] {
+  background-color: #0e1320 !important;
+  border-right: 1px solid #27314a !important;
+  box-shadow: none !important;
+}
+
+/* Itens: ícone + texto, sem fundo por padrão */
+[class*="sidebar"] [class*="menu"] a {
+  color: #a8b0c0 !important;
+  border-radius: 0.5rem !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+[class*="sidebar"] [class*="menu"] a:hover {
+  background-color: #1c2436 !important;
+  color: #f4f6fb !important;
+}
+
+/* Item ativo: azul suave discreto */
+[class*="sidebar"] [data-active="true"],
+[class*="sidebar"] [aria-current="page"],
+[class*="sidebar"] a[class*="active"] {
+  background-color: rgba(10, 132, 255, 0.14) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  border-left: none !important;
+}
+[class*="sidebar"] [data-active="true"] svg,
+[class*="sidebar"] [aria-current="page"] svg,
+[class*="sidebar"] a[class*="active"] svg {
+  color: #5ac8fa !important;
+}
+
+/* Rótulos de seção: simples, sem uppercase forçado */
+[class*="sidebar"] [class*="group-label"] {
+  color: #6e7aa0 !important;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Logo */
+[class*="sidebar"] a[href="/"] {
+  color: #f4f6fb !important;
+}
+[class*="sidebar"] a[href="/"] span {
+  color: #f4f6fb !important;
+}
