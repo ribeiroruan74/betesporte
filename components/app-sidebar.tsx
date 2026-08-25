@@ -1,4 +1,5 @@
 "use client";
+import { usePathname } from "next/navigation";
 import { LogoIcon } from "@/components/logo";
 import {
 Sidebar,
@@ -14,6 +15,7 @@ SidebarMenuItem,
 import { navGroups } from "@/components/app-shared";
 import { NavUser } from "@/components/nav-user";
 export function AppSidebar() {
+const pathname = usePathname();
 return (
 <Sidebar collapsible="offcanvas" variant="sidebar" className="static min-h-full">
 <SidebarHeader className="relative h-14 justify-center px-2 py-0">
@@ -34,7 +36,7 @@ href="/"
 <SidebarMenu>
 {group.items.map((item) => (
 <SidebarMenuItem key={item.title}>
-<SidebarMenuButton isActive={item.isActive} tooltip={item.title} render={<a href={item.url} />}>
+<SidebarMenuButton isActive={pathname === item.url} tooltip={item.title} render={<a href={item.url} />}>
 <item.icon />
 <span>{item.title}</span>
 </SidebarMenuButton>

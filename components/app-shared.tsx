@@ -13,7 +13,6 @@ export type NavItem = {
 	title: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-	isActive?: boolean;
 };
 
 export type NavGroup = {
@@ -25,7 +24,7 @@ export const navGroups: NavGroup[] = [
 	{
 		label: "Gestão",
 		items: [
-			{ title: "Dashboard", url: "/", icon: LayoutDashboardIcon, isActive: true },
+			{ title: "Dashboard", url: "/", icon: LayoutDashboardIcon },
 			{ title: "Registro", url: "/registro", icon: ClipboardCheckIcon },
 		],
 	},

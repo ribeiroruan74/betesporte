@@ -115,7 +115,7 @@ export default function Home() {
           <Link href="/registro" className="rounded-xl bg-[#0071E3] px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-[#0071E3]/25 transition hover:bg-[#0077ED]">
             + Registrar status
           </Link>
-          <Link href="/cobranca" className="rounded-xl border border-border bg-white/60 px-4 py-2.5 text-sm font-medium text-foreground backdrop-blur transition hover:bg-white/80">
+          <Link href="/cobranca" className="rounded-xl border border-border bg-white/60 px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-white/80">
             Cobrança
           </Link>
         </div>

@@ -49,32 +49,32 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ mostrar }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-16 z-[9999] flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed top-20 right-4 z-[9999] flex w-full max-w-sm flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="toast-animate pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-white/15 bg-black/85 px-4 py-3 text-foreground shadow-2xl backdrop-blur-xl"
+            className="toast-animate pointer-events-auto flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-card-foreground"
           >
             <span
-              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                t.tipo === "success" ? "bg-green-500" : t.tipo === "error" ? "bg-red-500" : "bg-blue-500"
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ${
+                t.tipo === "success" ? "bg-[#30D158]" : t.tipo === "error" ? "bg-[#FF3B30]" : "bg-primary"
               }`}
             >
               {t.tipo === "success" ? (
-                <CheckIcon className="h-4 w-4 text-white" />
+                <CheckIcon className="h-4 w-4" />
               ) : t.tipo === "error" ? (
-                <AlertCircleIcon className="h-4 w-4 text-white" />
+                <AlertCircleIcon className="h-4 w-4" />
               ) : (
-                <InfoIcon className="h-4 w-4 text-white" />
+                <InfoIcon className="h-4 w-4" />
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white">{t.titulo}</p>
-              {t.descricao && <p className="mt-0.5 text-xs text-white/70">{t.descricao}</p>}
+              <p className="text-sm font-semibold text-foreground">{t.titulo}</p>
+              {t.descricao && <p className="mt-0.5 text-xs text-muted-foreground">{t.descricao}</p>}
             </div>
             <button
               onClick={() => fechar(t.id)}
-              className="shrink-0 text-white/50 transition hover:text-white"
+              className="shrink-0 text-muted-foreground transition hover:text-foreground"
               aria-label="Fechar"
             >
               <XIcon className="h-4 w-4" />

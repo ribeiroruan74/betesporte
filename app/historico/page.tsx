@@ -213,7 +213,7 @@ export default function HistoricoPage() {
             <div key={grupo.data} className="glass-card card-animate rounded-2xl p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-foreground">{grupo.data}</h2>
-                <span className="rounded-full bg-black/5 px-3 py-1 text-xs font-medium text-muted-foreground">
+                <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                   {grupo.lista.length} registro(s)
                 </span>
               </div>

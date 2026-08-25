@@ -2,47 +2,140 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   TEMA PRETO + AZUL VIBRANTE — BETesporte
+   BETesporte — design flat, azul vibrante, preto/branco
    ============================================================ */
 
-:root,
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+
+  --card: #ffffff;
+  --card-strong: #f3f4f6;
+  --card-foreground: #0a0a0a;
+
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+
+  --secondary: #f3f4f6;
+  --secondary-foreground: #0a0a0a;
+
+  --accent: #eaf2ff;
+  --accent-foreground: #0071e3;
+
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --input: #ffffff;
+
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+
+  --destructive: #ff3b30;
+  --destructive-foreground: #ffffff;
+
+  --ring: #0071e3;
+
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #0071e3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf2ff;
+  --sidebar-accent-foreground: #0071e3;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #0071e3;
+
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* .dark quando o usuário escolhe manualmente; a media query cobre "sistema" */
 .dark {
   --background: #000000;
   --foreground: #f5f7ff;
+
   --card: #0d0f14;
   --card-strong: #14161d;
   --card-foreground: #f5f7ff;
+
   --muted: #14161d;
   --muted-foreground: #9aa3b5;
+
+  --secondary: #14161d;
+  --secondary-foreground: #f5f7ff;
+
+  --accent: rgba(0, 113, 227, 0.16);
+  --accent-foreground: #4da3ff;
+
+  --popover: #0d0f14;
+  --popover-foreground: #f5f7ff;
+
   --border: #1f2430;
   --border-strong: #2b3140;
   --input: #0d0f14;
-  --primary: #007bff;
+
+  --primary: #0071e3;
   --primary-foreground: #ffffff;
-  --accent: #1e90ff;
+
   --destructive: #ff3b30;
-  --ring: #007bff;
-  --radius-lg: 1.25rem;
-  --radius-md: 0.875rem;
-  --radius-sm: 0.625rem;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+  --destructive-foreground: #ffffff;
+
+  --ring: #0071e3;
+
+  --sidebar: #050505;
+  --sidebar-foreground: #f5f7ff;
+  --sidebar-primary: #0071e3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(0, 113, 227, 0.16);
+  --sidebar-accent-foreground: #4da3ff;
+  --sidebar-border: #1f2430;
+  --sidebar-ring: #0071e3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-accent: var(--accent);
+
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
   --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --radius-lg: var(--radius-lg);
   --radius-md: var(--radius-md);
   --radius-sm: var(--radius-sm);
@@ -56,7 +149,7 @@
 
 html,
 body {
-  background-color: #000000;
+  background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -72,75 +165,30 @@ body {
 }
 
 /* ============================================================
-   SIDEBAR — minimalista, preta
-   ============================================================ */
-.glass-sidebar,
-aside,
-[class*="sidebar"] {
-  background-color: #050505 !important;
-  border-right: 1px solid #1f2430 !important;
-  box-shadow: none !important;
-}
-
-[class*="sidebar"] [class*="menu"] a {
-  color: #9aa3b5 !important;
-  border-radius: 0.5rem !important;
-  transition: background 0.15s ease, color 0.15s ease !important;
-}
-[class*="sidebar"] [class*="menu"] a:hover {
-  background-color: #14161d !important;
-  color: #f5f7ff !important;
-}
-
-[class*="sidebar"] [data-active="true"],
-[class*="sidebar"] [aria-current="page"],
-[class*="sidebar"] a[class*="active"] {
-  background-color: rgba(0, 123, 255, 0.16) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-  border-left: none !important;
-}
-[class*="sidebar"] [data-active="true"] svg,
-[class*="sidebar"] [aria-current="page"] svg,
-[class*="sidebar"] a[class*="active"] svg {
-  color: #1e90ff !important;
-}
-
-[class*="sidebar"] [class*="group-label"] {
-  color: #6e7aa0 !important;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-[class*="sidebar"] a[href="/"] {
-  color: #f5f7ff !important;
-}
-[class*="sidebar"] a[href="/"] span {
-  color: #f5f7ff !important;
-}
-
-/* ============================================================
-   CARDS — flat, preto
+   CARDS — flat, sem blur/sombra/gradiente
    ============================================================ */
 .glass-card,
 .glass-panel,
 .glass-card-strong {
-  background-color: #0d0f14;
-  border: 1px solid #1f2430;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  box-shadow: none;
   max-width: 100%;
   overflow-wrap: break-word;
 }
 
 .glass-header,
 header {
-  background-color: rgba(0, 0, 0, 0.92) !important;
-  border-bottom: 1px solid #1f2430 !important;
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Muitas telas usam "bg-white/NN" como um card secundário (linhas de lista,
+   blocos dentro de um card). Mapeia isso para o token de card, para que
+   funcione igual nos dois temas em vez de ficar sempre branco translúcido. */
+[class*="bg-white/"] {
+  background-color: var(--color-card-strong);
 }
 
 /* ============================================================
@@ -149,69 +197,42 @@ header {
 input,
 select,
 textarea {
-  background-color: #0d0f14 !important;
-  color: var(--color-foreground) !important;
-  border: 1px solid #1f2430 !important;
-  border-radius: 0.625rem !important;
+  background-color: var(--color-input);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
   max-width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 input::placeholder,
 textarea::placeholder {
-  color: #6e7aa0 !important;
+  color: var(--color-muted-foreground);
   opacity: 1;
 }
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #007bff !important;
+  border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25) !important;
-}
-
-[class*="bg-white/"] {
-  background-color: #0d0f14 !important;
-}
-
-[class*="text-muted-foreground"],
-.text-muted-foreground {
-  color: var(--color-muted-foreground) !important;
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
 }
 
 /* ============================================================
-   BOTÕES — azul vibrante
+   BOTÕES — azul vibrante, flat
    ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
-  background-color: #007bff !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-button[class*="bg-primary"]:hover,
-a[class*="bg-primary"]:hover {
-  background-color: #1e90ff !important;
+  color: var(--color-primary-foreground);
+  border: none;
+  box-shadow: none;
 }
 button[class*="border"]:not([class*="bg-primary"]) {
-  background-color: #0d0f14 !important;
-  border: 1px solid #1f2430 !important;
-  color: var(--color-foreground) !important;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
 }
 button[class*="border"]:not([class*="bg-primary"]):hover {
-  background-color: #14161d !important;
-}
-
-/* ============================================================
-   MODAIS
-   ============================================================ */
-[class*="fixed"] [class*="rounded"],
-[role="dialog"] {
-  background-color: #0d0f14 !important;
-  border: 1px solid #2b3140 !important;
-  max-width: 100%;
-}
-[class*="fixed"] {
-  background-color: rgba(0, 0, 0, 0.7) !important;
+  background-color: var(--color-muted);
 }
 
 /* ============================================================
@@ -230,15 +251,15 @@ table {
 }
 table tr,
 [class*="table"] tr {
-  border-bottom: 1px solid #1f2430 !important;
+  border-bottom: 1px solid var(--color-border);
 }
 table tr:hover,
 [class*="table"] tr:hover {
-  background-color: #14161d !important;
+  background-color: var(--color-muted);
 }
 
 /* ============================================================
-   DOCK FLUTUANTE — preto, azul no ativo
+   DOCK FLUTUANTE (mobile)
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -251,10 +272,9 @@ table tr:hover,
   justify-content: space-around;
   height: 64px;
   padding: 5px 8px;
-  background-color: rgba(5, 5, 5, 0.95);
-  border: 1px solid #2b3140;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: 24px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
 .ios-tab-item {
@@ -267,7 +287,7 @@ table tr:hover,
   min-width: 0;
   height: 54px;
   border-radius: 16px;
-  color: #9aa3b5;
+  color: var(--color-muted-foreground);
   font-size: 10px;
   font-weight: 500;
   text-decoration: none;
@@ -291,22 +311,31 @@ table tr:hover,
 }
 
 .ios-tab-item.active {
-  color: #1e90ff;
+  color: var(--color-primary);
 }
 
 .ios-tab-item.active .ios-tab-icon {
-  background-color: rgba(0, 123, 255, 0.18);
+  background-color: var(--color-accent);
 }
 
 .ios-tab-item.active .ios-tab-label {
-  color: #1e90ff;
+  color: var(--color-primary);
   font-weight: 600;
+}
+
+/* .ios-tabbar declara display:flex fora de um @layer, então teria
+   precedência sobre a utilidade "md:hidden" do Tailwind (que fica dentro de
+   um layer) — força escondido em telas md+ para não sobrepor o desktop. */
+@media (min-width: 768px) {
+  .ios-tabbar {
+    display: none;
+  }
 }
 
 /* Espaço extra embaixo para o dock NÃO cobrir os botões */
 @media (max-width: 767px) {
   .ios-tabbar-padding {
-    padding-bottom: 120px !important;
+    padding-bottom: 120px;
   }
 }
 
@@ -321,7 +350,7 @@ table tr:hover,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(140, 150, 175, 0.3);
+  background: var(--border-strong);
   border-radius: 8px;
 }
 
@@ -334,9 +363,9 @@ table tr:hover,
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes toastIn {
-  from { opacity: 0; transform: translateY(-14px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 .card-animate { animation: fadeInUp 0.45s ease both; }
 .modal-animate { animation: scaleIn 0.25s ease both; }
-.toast-animate { animation: toastIn 0.28s ease both; }
+.toast-animate { animation: toastIn 0.22s ease both; }

@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { CheckIcon, ClockIcon, DatabaseIcon, MessageSquareIcon, PaletteIcon, RefreshCwIcon, TagIcon, TargetIcon } from "lucide-react";
 import { InfluenciadoresManager } from "@/components/influenciadores-manager";
-
-type Tema = "sistema" | "claro" | "escuro";
+import { aplicarTema, type Tema } from "@/lib/tema";
 
 interface StatusConfig {
 	id: string;
@@ -116,16 +115,7 @@ export default function ConfiguracoesPage() {
 
 	// Aplica o tema
 	useEffect(() => {
-		const html = document.documentElement;
-		const tema = config.preferencias.tema;
-		if (tema === "escuro") {
-			html.classList.add("dark");
-		} else if (tema === "claro") {
-			html.classList.remove("dark");
-		} else {
-			if (window.matchMedia("(prefers-color-scheme: dark)").matches) html.classList.add("dark");
-			else html.classList.remove("dark");
-		}
+		aplicarTema(config.preferencias.tema);
 	}, [config.preferencias.tema]);
 
 	// Testa a conexão com a planilha

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { navLinks } from "@/components/app-shared";
 import { SearchIcon, BellIcon, HeadsetIcon, XIcon } from "lucide-react";
 
-const activeItem = navLinks.find((item) => item.isActive);
-
 export function AppHeader() {
+  const pathname = usePathname();
+  const activeItem = navLinks.find((item) => item.url === pathname);
   const [buscaAberta, setBuscaAberta] = useState(false);
   const [notifAberta, setNotifAberta] = useState(false);
   const [suporteAberto, setSuporteAberto] = useState(false);
@@ -25,6 +27,8 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
+
         {/* Busca */}
         <div className="relative flex items-center">
           {buscaAberta && (

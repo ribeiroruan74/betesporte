@@ -1,9 +1,8 @@
-import { Fragment } from "react";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { navLinks } from "@/components/app-shared";
 
 export function AppBreadcrumbs({ page }: { page?: (typeof navLinks)[number] }) {
-	const current = page ?? navLinks.find((item) => item.isActive);
+	const current = page;
 
 	if (!current) {
 		return (
