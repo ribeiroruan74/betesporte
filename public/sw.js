@@ -1,11 +1,18 @@
-const CACHE = "betesporte-v1";
+const CACHE = "betesporte-v2";
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      ),
+    ])
+  );
 });
 
 self.addEventListener("fetch", (e) => {

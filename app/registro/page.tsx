@@ -2,10 +2,18 @@
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
-import { STATUS_CONFIG, type StatusType } from "@/lib/influencers";
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon } from "lucide-react";
+import { STATUS_CONFIG, parseFormatos, type StatusType } from "@/lib/influencers";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
+
+function hojeFormatado() {
+  return new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+}
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -172,6 +180,12 @@ export default function RegistroPage() {
     );
   }
 
+  // Status já salvo hoje: prioriza o que acabou de ser salvo nesta sessão,
+  // senão usa o que já estava na planilha para hoje (current.status)
+  const statusHojeRaw = statuses[current.name] ?? current.status ?? "";
+  const statusHojeFormatos = parseFormatos(statusHojeRaw);
+  const registradoNestaSessao = current.name in statuses;
+
   // Abre o Instagram: usa o link da coluna C se existir; senão monta a partir do @username
   const instagramUrl = current.link
     ? current.link
@@ -184,7 +198,10 @@ export default function RegistroPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Registro</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+            <CalendarDaysIcon className="h-3.5 w-3.5" />
+            <span className="capitalize">{hojeFormatado()}</span>
+            <span className="text-border">·</span>
             {currentIndex + 1} / {influencers.length} · {postedCount} registrados
           </p>
         </div>
@@ -216,11 +233,14 @@ export default function RegistroPage() {
                 }}
                 className="w-full rounded-xl border border-border bg-white/70 px-3 py-2.5 text-sm outline-none focus:border-primary"
               >
-                {influencers.map((inf, idx) => (
-                  <option key={inf.id ?? idx} value={idx}>
-                    {idx + 1}. {inf.name} {inf.username ? `(${inf.username})` : ""}
-                  </option>
-                ))}
+                {influencers.map((inf, idx) => {
+                  const jaTemStatus = (statuses[inf.name] ?? inf.status ?? "") !== "" && parseFormatos(statuses[inf.name] ?? inf.status ?? "").length > 0;
+                  return (
+                    <option key={inf.id ?? idx} value={idx}>
+                      {jaTemStatus ? "✓" : "○"} {idx + 1}. {inf.name} {inf.username ? `(${inf.username})` : ""}
+                    </option>
+                  );
+                })}
               </select>
               <button
                 onClick={() => setShowSeletor(false)}
@@ -241,6 +261,28 @@ export default function RegistroPage() {
             <p className="truncate text-lg font-semibold text-foreground">{current.name}</p>
             <p className="truncate text-sm text-muted-foreground">{current.username}</p>
           </div>
+        </div>
+
+        {/* Status já registrado hoje — pra não confundir se já passou por aqui */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 py-2.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            {registradoNestaSessao ? "Você acabou de registrar:" : "Status de hoje:"}
+          </span>
+          {statusHojeFormatos.length === 0 ? (
+            <span className="rounded-full bg-background px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              Ainda não registrado
+            </span>
+          ) : (
+            statusHojeFormatos.map((f) => (
+              <span
+                key={f}
+                className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+                style={{ backgroundColor: STATUS_CONFIG[f].color }}
+              >
+                {STATUS_CONFIG[f].icon} {STATUS_CONFIG[f].label}
+              </span>
+            ))
+          )}
         </div>
 
         {/* Botão GRANDE de abrir Instagram */}

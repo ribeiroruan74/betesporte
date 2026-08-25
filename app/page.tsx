@@ -7,6 +7,8 @@ import { useInfluencers } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, contaComoPostou, parseFormatos, type StatusType } from "@/lib/influencers";
 import { MetasSemana } from "@/components/metas-semana";
+import { StatCard } from "@/components/stat-card";
+import { CheckCircle2Icon, AlertCircleIcon, TargetIcon, UsersIcon, TrendingUpIcon, LayersIcon } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, CartesianGrid,
@@ -84,12 +86,12 @@ export default function Home() {
   const attentionList = influencers.filter((i) => !contaComoPostou(i.status || ""));
 
   const kpis = [
-    { label: "Postaram hoje", value: posted, color: "#30D158", sub: `de ${total} influenciadores` },
-    { label: "Não postaram", value: inadimplentes, color: inadimplentes > 0 ? "#FF3B30" : "#30D158", sub: "inadimplentes" },
-    { label: "% adesão hoje", value: `${adesao}%`, color: "#0071E3", sub: "meta do dia" },
-    { label: "Total", value: total, color: "#AF52DE", sub: "influenciadores" },
-    { label: "Média de adesão", value: `${mediaAdesao}%`, color: "#5AC8FA", sub: "últimos dias" },
-    { label: "Formatos usados", value: formatosUsados, color: "#FF9500", sub: "hoje" },
+    { label: "Postaram hoje", value: posted, color: "#30D158", sub: `de ${total} influenciadores`, icon: CheckCircle2Icon, hero: true },
+    { label: "Não postaram", value: inadimplentes, color: "#FF3B30", sub: "inadimplentes", icon: AlertCircleIcon, hero: false },
+    { label: "% adesão hoje", value: `${adesao}%`, color: "#0071E3", sub: "meta do dia", icon: TargetIcon, hero: false },
+    { label: "Total", value: total, color: "#AF52DE", sub: "influenciadores", icon: UsersIcon, hero: false },
+    { label: "Média de adesão", value: `${mediaAdesao}%`, color: "#5AC8FA", sub: "últimos dias", icon: TrendingUpIcon, hero: false },
+    { label: "Formatos usados", value: formatosUsados, color: "#FF9500", sub: "hoje", icon: LayersIcon, hero: false },
   ];
 
   const ultimosRegistros = registros
@@ -124,15 +126,17 @@ export default function Home() {
       {/* KPIs */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi, i) => (
-          <div
+          <StatCard
             key={kpi.label}
-            className="glass-card card-animate rounded-2xl p-4"
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            icon={kpi.icon}
+            color={kpi.color}
+            hero={kpi.hero}
+            className="card-animate"
             style={{ animationDelay: `${i * 60}ms` }}
-          >
-            <p className="text-xs text-muted-foreground">{kpi.label}</p>
-            <p className="mt-1 text-3xl font-bold tracking-tight" style={{ color: kpi.color }}>{kpi.value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
-          </div>
+          />
         ))}
       </div>
 
