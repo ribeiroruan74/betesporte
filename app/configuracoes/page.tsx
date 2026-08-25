@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
-import { CheckIcon, ClockIcon, DatabaseIcon, MessageSquareIcon, PaletteIcon, RefreshCwIcon, TagIcon } from "lucide-react";
+import { CheckIcon, ClockIcon, DatabaseIcon, MessageSquareIcon, PaletteIcon, RefreshCwIcon, TagIcon, TargetIcon } from "lucide-react";
+import { InfluenciadoresManager } from "@/components/influenciadores-manager";
 
 type Tema = "sistema" | "claro" | "escuro";
 
@@ -229,7 +230,20 @@ export default function ConfiguracoesPage() {
 				</button>
 			</div>
 
-			{/* 2. STATUS */}
+			{/* 2. INFLUENCIADORES E METAS SEMANAIS */}
+			<div>
+				<div className="mt-6 flex items-center gap-2 px-1">
+					<TargetIcon className="h-4 w-4 text-muted-foreground" />
+					<h2 className="text-sm font-semibold text-foreground">Influenciadores e metas semanais</h2>
+				</div>
+				<p className="mt-1 px-1 text-xs text-muted-foreground">
+					Cadastre os influenciadores e defina quantos stories e feeds/reels cada um deve entregar por semana. A
+					automação na página inicial calcula sozinha quantas entregas ainda faltam.
+				</p>
+				<InfluenciadoresManager />
+			</div>
+
+			{/* 3. STATUS */}
 			<div className="glass-card card-animate mt-6 rounded-2xl p-6">
 				<div className="flex items-center gap-2">
 					<TagIcon className="h-4 w-4 text-muted-foreground" />
@@ -266,7 +280,7 @@ export default function ConfiguracoesPage() {
 				</div>
 			</div>
 
-			{/* 3. REGRAS */}
+			{/* 4. REGRAS */}
 			<div className="glass-card card-animate mt-6 rounded-2xl p-6">
 				<div className="flex items-center gap-2">
 					<ClockIcon className="h-4 w-4 text-muted-foreground" />
@@ -320,7 +334,7 @@ export default function ConfiguracoesPage() {
 				</div>
 			</div>
 
-			{/* 4. MENSAGENS */}
+			{/* 5. MENSAGENS */}
 			<div className="glass-card card-animate mt-6 rounded-2xl p-6">
 				<div className="flex items-center justify-between gap-3">
 					<div className="flex items-center gap-2">
@@ -356,7 +370,7 @@ export default function ConfiguracoesPage() {
 				</div>
 			</div>
 
-			{/* 5. PREFERÊNCIAS */}
+			{/* 6. PREFERÊNCIAS */}
 			<div className="glass-card card-animate mt-6 rounded-2xl p-6">
 				<div className="flex items-center gap-2">
 					<PaletteIcon className="h-4 w-4 text-muted-foreground" />

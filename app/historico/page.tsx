@@ -3,15 +3,17 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useBancoDados } from "@/lib/use-banco-dados";
+import { STATUS_CONFIG, parseFormatos, type StatusType } from "@/lib/influencers";
+import { cn } from "@/lib/utils";
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  "story + link": { label: "Story + Link", color: "#75CEFF" },
-  "story sem link": { label: "Story Sem Link", color: "#5AC8FA" },
-  branding: { label: "Branding", color: "#AF52DE" },
-  "feed/reels": { label: "Feed/Reels", color: "#FF9500" },
-  "nao postou": { label: "Não Postou", color: "#FF3B30" },
-  "não postou": { label: "Não Postou", color: "#FF3B30" },
-};
+const FILTROS_FORMATO: (StatusType | "todos")[] = [
+  "todos",
+  "story-link",
+  "story-sem-link",
+  "feed-reels",
+  "branding",
+  "nao-postou",
+];
 
 // Normaliza: minúsculas, sem acento, sem pontuação, sem espaços extras
 function normaliza(s: string) {
@@ -20,28 +22,6 @@ function normaliza(s: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "");
-}
-
-// Fonte única da verdade: é "não postou"?
-function ehNaoPostou(status: string) {
-  const n = normaliza(status);
-  return (
-    n === "naopostou" ||
-    n === "naopostou" ||
-    n === "pendente" ||
-    n === "nao" ||
-    n === "nao-postou" ||
-    n === "" ||
-    n === "nao postou"
-  );
-}
-
-function metaStatus(status: string) {
-  if (ehNaoPostou(status)) {
-    return { label: "Não Postou", color: "#FF3B30" };
-  }
-  const meta = STATUS_META[normaliza(status)];
-  return meta ? { ...meta } : { label: status || "—", color: "#94A3B8" };
 }
 
 function paraISO(data: string) {
@@ -61,13 +41,7 @@ export default function HistoricoPage() {
   const { registros, loading } = useBancoDados();
   const [busca, setBusca] = useState("");
   const [dataSelecionada, setDataSelecionada] = useState("");
-
-  const datasDisponiveis = useMemo(() => {
-    return Array.from(new Set(registros.map((r) => r.data)))
-      .map((d) => ({ original: d, iso: paraISO(d) }))
-      .filter((d) => d.iso)
-      .sort((a, b) => (a.iso < b.iso ? 1 : -1));
-  }, [registros]);
+  const [formatoFiltro, setFormatoFiltro] = useState<StatusType | "todos">("todos");
 
   const filtrados = useMemo(() => {
     let lista = registros;
@@ -81,8 +55,11 @@ export default function HistoricoPage() {
           normaliza(r.username).includes(normaliza(busca))
       );
     }
+    if (formatoFiltro !== "todos") {
+      lista = lista.filter((r) => parseFormatos(r.status).includes(formatoFiltro));
+    }
     return lista;
-  }, [registros, busca, dataSelecionada]);
+  }, [registros, busca, dataSelecionada, formatoFiltro]);
 
   const grupos = useMemo(() => {
     const porData = new Map<string, typeof registros>();
@@ -96,18 +73,27 @@ export default function HistoricoPage() {
       .map(([data, lista]) => ({ data, lista }));
   }, [filtrados]);
 
+  // Relatório do dia — sempre com base em TODOS os registros do dia (ignora
+  // o filtro de formato, que serve só para navegar a lista abaixo)
   const relatorioDia = useMemo(() => {
     if (!dataSelecionada) return null;
     const doDia = registros.filter((r) => paraISO(r.data) === dataSelecionada);
     const total = doDia.length;
-    const postaram = doDia.filter((r) => !ehNaoPostou(r.status)).length;
+    const postaram = doDia.filter((r) => {
+      const formatos = parseFormatos(r.status);
+      return formatos.length > 0 && !formatos.includes("nao-postou");
+    }).length;
     const inadimplentes = total - postaram;
     const adesao = total > 0 ? Math.round((postaram / total) * 100) : 0;
 
-    const porFormato: Record<string, number> = {};
+    // Cada formato entregue no dia soma na sua própria contagem — um
+    // influenciador que postou Story + Link E Feed/Reels no mesmo dia
+    // soma 1 em cada um, em vez de virar um rótulo combinado único.
+    const porFormato: Partial<Record<StatusType, number>> = {};
     doDia.forEach((r) => {
-      const label = metaStatus(r.status).label;
-      porFormato[label] = (porFormato[label] || 0) + 1;
+      parseFormatos(r.status).forEach((f) => {
+        porFormato[f] = (porFormato[f] || 0) + 1;
+      });
     });
 
     return { total, postaram, inadimplentes, adesao, porFormato, doDia };
@@ -146,6 +132,25 @@ export default function HistoricoPage() {
         </div>
       </div>
 
+      {/* Filtro por formato — separa Feed/Reels de Story+Link mesmo quando
+          foram postados no mesmo dia pelo mesmo influenciador */}
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {FILTROS_FORMATO.map((f) => (
+          <button
+            key={f}
+            onClick={() => setFormatoFiltro(f)}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-xs font-medium transition-all hover:scale-105",
+              formatoFiltro === f
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "border border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {f === "todos" ? "Todos os formatos" : `${STATUS_CONFIG[f].icon} ${STATUS_CONFIG[f].label}`}
+          </button>
+        ))}
+      </div>
+
       {relatorioDia && (
         <div className="glass-card card-animate mt-6 rounded-2xl p-6">
           <div className="flex items-center justify-between">
@@ -180,15 +185,15 @@ export default function HistoricoPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {Object.entries(relatorioDia.porFormato).map(([label, qtd]) => {
-              const meta = metaStatus(label);
+            {(Object.entries(relatorioDia.porFormato) as [StatusType, number][]).map(([formato, qtd]) => {
+              const meta = STATUS_CONFIG[formato];
               return (
                 <span
-                  key={label}
+                  key={formato}
                   className="rounded-full px-3 py-1 text-xs font-medium text-white"
                   style={{ backgroundColor: meta.color }}
                 >
-                  {label}: {qtd}
+                  {meta.icon} {meta.label}: {qtd}
                 </span>
               );
             })}
@@ -214,19 +219,30 @@ export default function HistoricoPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {grupo.lista.map((r, i) => {
-                  const meta = metaStatus(r.status);
+                  const formatos = parseFormatos(r.status);
                   return (
-                    <div key={i} className="flex items-center justify-between rounded-xl bg-white/60 p-3">
+                    <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">{r.nome}</p>
                         <p className="truncate text-xs text-muted-foreground">{r.username}</p>
                       </div>
-                      <span
-                        className="ml-3 shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white"
-                        style={{ backgroundColor: meta.color }}
-                      >
-                        {meta.label}
-                      </span>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        {formatos.length === 0 ? (
+                          <span className="rounded-full bg-[#94A3B8] px-3 py-1 text-xs font-medium text-white">
+                            {r.status || "—"}
+                          </span>
+                        ) : (
+                          formatos.map((f) => (
+                            <span
+                              key={f}
+                              className="rounded-full px-3 py-1 text-xs font-medium text-white"
+                              style={{ backgroundColor: STATUS_CONFIG[f].color }}
+                            >
+                              {STATUS_CONFIG[f].label}
+                            </span>
+                          ))
+                        )}
+                      </div>
                     </div>
                   );
                 })}

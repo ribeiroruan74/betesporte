@@ -2,29 +2,17 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useBancoDados } from "@/lib/use-banco-dados";
+import { STATUS_CONFIG, contaComoPostou, normalizaTexto, parseFormatos, type StatusType } from "@/lib/influencers";
+import { cn } from "@/lib/utils";
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  "story + link": { label: "Story + Link", color: "#75CEFF" },
-  "story sem link": { label: "Story Sem Link", color: "#5AC8FA" },
-  branding: { label: "Branding", color: "#AF52DE" },
-  "feed/reels": { label: "Feed/Reels", color: "#FF9500" },
-  "nao postou": { label: "Não Postou", color: "#FF3B30" },
-  "não postou": { label: "Não Postou", color: "#FF3B30" },
-};
-
-function normaliza(s: string) {
-  return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-function ehNaoPostou(status: string) {
-  const n = normaliza(status).replace(/\s+/g, "");
-  return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
-}
-
-function metaStatus(status: string) {
-  const meta = STATUS_META[normaliza(status)];
-  return meta ? { ...meta } : { label: status || "—", color: "#94A3B8" };
-}
+const FILTROS_FORMATO: (StatusType | "todos")[] = [
+  "todos",
+  "story-link",
+  "story-sem-link",
+  "feed-reels",
+  "branding",
+  "nao-postou",
+];
 
 function paraISO(data: string) {
   const p = data.split("/");
@@ -44,6 +32,7 @@ export default function RelatoriosPage() {
   const [ate, setAte] = useState("");
   const [mes, setMes] = useState("");
   const [influenciador, setInfluenciador] = useState("");
+  const [formatoFiltro, setFormatoFiltro] = useState<StatusType | "todos">("todos");
 
   const nomes = useMemo(
     () => Array.from(new Set(registros.map((r) => r.nome))).sort((a, b) => a.localeCompare(b)),
@@ -53,7 +42,7 @@ export default function RelatoriosPage() {
   const filtrados = useMemo(() => {
     const temFiltro = de || ate || mes || influenciador;
     return registros.filter((r) => {
-      if (influenciador && normaliza(r.nome) !== normaliza(influenciador)) return false;
+      if (influenciador && normalizaTexto(r.nome) !== normalizaTexto(influenciador)) return false;
       if (mes) {
         const p = r.data.split("/");
         if (p.length !== 3) return false;
@@ -67,12 +56,13 @@ export default function RelatoriosPage() {
         if (de && iso < de) return false;
         if (ate && iso > ate) return false;
       }
+      if (formatoFiltro !== "todos" && !parseFormatos(r.status).includes(formatoFiltro)) return false;
       if (!temFiltro) {
         return paraISO(r.data) === hojeISO();
       }
       return true;
     });
-  }, [registros, de, ate, mes, influenciador]);
+  }, [registros, de, ate, mes, influenciador, formatoFiltro]);
 
   if (loading) {
     return (
@@ -83,7 +73,7 @@ export default function RelatoriosPage() {
   }
 
   const total = filtrados.length;
-  const postaram = filtrados.filter((r) => !ehNaoPostou(r.status)).length;
+  const postaram = filtrados.filter((r) => contaComoPostou(r.status)).length;
   const inadimplentes = total - postaram;
   const adesao = total > 0 ? Math.round((postaram / total) * 100) : 0;
 
@@ -94,18 +84,18 @@ export default function RelatoriosPage() {
     { label: "% adesão", value: `${adesao}%`, color: "#AF52DE" },
   ];
 
-  const temFiltro = de || ate || mes || influenciador;
+  const temFiltro = de || ate || mes || influenciador || formatoFiltro !== "todos";
 
   return (
     <AppShell>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Filtre por período, mês ou influenciador</p>
+          <p className="mt-1 text-sm text-muted-foreground">Filtre por período, mês, influenciador ou formato</p>
         </div>
         {temFiltro && (
           <button
-            onClick={() => { setDe(""); setAte(""); setMes(""); setInfluenciador(""); }}
+            onClick={() => { setDe(""); setAte(""); setMes(""); setInfluenciador(""); setFormatoFiltro("todos"); }}
             className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             Limpar filtros
@@ -157,6 +147,25 @@ export default function RelatoriosPage() {
             </select>
           </div>
         </div>
+
+        {/* Filtro por formato — permite ver só Feed/Reels ou só Story+Link,
+            mesmo em dias em que os dois foram postados juntos */}
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {FILTROS_FORMATO.map((f) => (
+            <button
+              key={f}
+              onClick={() => setFormatoFiltro(f)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-medium transition-all hover:scale-105",
+                formatoFiltro === f
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "border border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {f === "todos" ? "Todos os formatos" : `${STATUS_CONFIG[f].icon} ${STATUS_CONFIG[f].label}`}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -178,19 +187,30 @@ export default function RelatoriosPage() {
               .slice()
               .sort((a, b) => (a.data < b.data ? 1 : -1))
               .map((r, i) => {
-                const meta = metaStatus(r.status);
+                const formatos = parseFormatos(r.status);
                 return (
                   <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">{r.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">{r.username} · {r.data}</p>
                     </div>
-                    <span
-                      className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white"
-                      style={{ backgroundColor: meta.color }}
-                    >
-                      {meta.label}
-                    </span>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {formatos.length === 0 ? (
+                        <span className="rounded-full bg-[#94A3B8] px-3 py-1 text-xs font-medium text-white">
+                          {r.status || "—"}
+                        </span>
+                      ) : (
+                        formatos.map((f) => (
+                          <span
+                            key={f}
+                            className="rounded-full px-3 py-1 text-xs font-medium text-white"
+                            style={{ backgroundColor: STATUS_CONFIG[f].color }}
+                          >
+                            {STATUS_CONFIG[f].label}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                 );
               })}

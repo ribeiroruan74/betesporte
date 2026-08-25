@@ -24,19 +24,11 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
+import { contaComoPostou } from "@/lib/influencers";
 
 type PeriodDays = 7 | 30;
 type Registro = { data: string; nome: string; username: string; status: string };
 type DayRow = { date: string; postaram: number; naopostaram: number };
-
-function normaliza(s: string) {
-	return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-}
-
-function ehNaoPostou(status: string) {
-	const n = normaliza(status);
-	return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
-}
 
 function paraISO(data: string) {
 	const p = data.split("/");
@@ -77,7 +69,7 @@ export function SalesChart({ registros }: { registros: Registro[] }) {
 		const porDia = new Map<string, { postaram: number; naopostaram: number }>();
 		registros.forEach((r) => {
 			const atual = porDia.get(r.data) || { postaram: 0, naopostaram: 0 };
-			if (ehNaoPostou(r.status)) atual.naopostaram++;
+			if (!contaComoPostou(r.status)) atual.naopostaram++;
 			else atual.postaram++;
 			porDia.set(r.data, atual);
 		});

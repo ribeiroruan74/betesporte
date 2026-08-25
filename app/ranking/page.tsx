@@ -13,16 +13,9 @@ import {
   Cell,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { contaComoPostou } from "@/lib/influencers";
 
 const medals = ["🥇", "🥈", "🥉"];
-
-function normaliza(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
 
 export default function RankingPage() {
   const { registros, loading } = useBancoDados();
@@ -46,7 +39,7 @@ export default function RankingPage() {
   >();
 
   registros.forEach((r) => {
-    const postou = normaliza(r.status) !== "naopostou" && r.status.trim() !== "";
+    const postou = contaComoPostou(r.status);
     const atual = porInfluenciador.get(r.nome) || {
       nome: r.nome,
       username: r.username,

@@ -7,15 +7,7 @@ import { Distribuicao } from "@/components/distribuicao";
 import { useInfluencers, type Influencer } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { FinalizarDiaButton } from "@/components/finalizar-dia-button";
-
-function normaliza(s: string) {
-  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-}
-
-function ehNaoPostou(status: string) {
-  const n = normaliza(status);
-  return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
-}
+import { contaComoPostou } from "@/lib/influencers";
 
 function hojeStr() {
   const d = new Date();
@@ -39,7 +31,7 @@ export function Dashboard() {
   const registrosHoje = registros.filter((r) => (r.data || "").startsWith(hoje));
 
   const total = influencers.length;
-  const posted = influencers.filter((i) => !ehNaoPostou(i.status || "")).length;
+  const posted = influencers.filter((i) => contaComoPostou(i.status || "")).length;
   const inadimplentes = total - posted;
   const adesao = total > 0 ? Math.round((posted / total) * 100) : 0;
 
@@ -49,7 +41,7 @@ export function Dashboard() {
     { label: "Inadimplentes", value: String(inadimplentes), delta: inadimplentes > 0 ? -100 : 0 },
   ];
 
-  const attentionList: Influencer[] = influencers.filter((i) => ehNaoPostou(i.status || ""));
+  const attentionList: Influencer[] = influencers.filter((i) => !contaComoPostou(i.status || ""));
 
   return (
     <div className="flex flex-1 flex-col gap-6 py-6">

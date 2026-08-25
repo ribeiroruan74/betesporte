@@ -22,4 +22,4 @@ export function useBancoDados() {
   }, []);
 
   return { registros, loading };
-}3
+}

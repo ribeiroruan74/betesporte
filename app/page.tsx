@@ -5,34 +5,12 @@ import { FinalizarDiaButton } from "@/components/finalizar-dia-button";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
+import { STATUS_CONFIG, contaComoPostou, parseFormatos, type StatusType } from "@/lib/influencers";
+import { MetasSemana } from "@/components/metas-semana";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
-
-const FORMAT_META: Record<string, { label: string; color: string }> = {
-  "story + link": { label: "Story + Link", color: "#75CEFF" },
-  "story sem link": { label: "Story Sem Link", color: "#5AC8FA" },
-  branding: { label: "Branding", color: "#AF52DE" },
-  "feed/reels": { label: "Feed/Reels", color: "#FF9500" },
-  "nao postou": { label: "Não Postou", color: "#FF3B30" },
-  "não postou": { label: "Não Postou", color: "#FF3B30" },
-};
-
-function normaliza(s: string) {
-  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-}
-
-function ehNaoPostou(status: string) {
-  const n = normaliza(status);
-  return n === "naopostou" || n === "pendente" || n === "nao" || n === "";
-}
-
-function metaStatus(status: string) {
-  if (ehNaoPostou(status)) return { label: "Não Postou", color: "#FF3B30" };
-  const meta = FORMAT_META[normaliza(status)];
-  return meta ? { ...meta } : { label: status || "—", color: "#94A3B8" };
-}
 
 function paraISO(data: string) {
   const p = data.split("/");
@@ -55,11 +33,11 @@ export default function Home() {
 
   // ===== KPIs de hoje (ACOMPANHAMENTO) =====
   const total = influencers.length;
-  const posted = influencers.filter((i) => !ehNaoPostou(i.status || "")).length;
+  const posted = influencers.filter((i) => contaComoPostou(i.status || "")).length;
   const inadimplentes = total - posted;
   const adesao = total > 0 ? Math.round((posted / total) * 100) : 0;
   const formatosUsados = new Set(
-    influencers.filter((i) => !ehNaoPostou(i.status || "")).map((i) => normaliza(i.status || ""))
+    influencers.flatMap((i) => parseFormatos(i.status || "").filter((f) => f !== "nao-postou"))
   ).size;
 
   // ===== Adesão por dia (BANCO_DE_DADOS) =====
@@ -67,7 +45,7 @@ export default function Home() {
   registros.forEach((r) => {
     const atual = porDia.get(r.data) || { postaram: 0, total: 0 };
     atual.total += 1;
-    if (!ehNaoPostou(r.status)) atual.postaram += 1;
+    if (contaComoPostou(r.status)) atual.postaram += 1;
     porDia.set(r.data, atual);
   });
 
@@ -86,20 +64,24 @@ export default function Home() {
     : 0;
 
   // ===== Distribuição por formato =====
-  const formatCounts: Record<string, number> = {};
+  // Cada formato entregue hoje soma na sua própria fatia — um influenciador
+  // que postou Story + Link E Feed/Reels no mesmo dia soma nas duas fatias,
+  // em vez de virar uma fatia combinada única.
+  const formatCounts: Partial<Record<StatusType, number>> = {};
   influencers.forEach((i) => {
-    if (!ehNaoPostou(i.status || "")) {
-      const label = metaStatus(i.status || "").label;
-      formatCounts[label] = (formatCounts[label] || 0) + 1;
-    }
+    parseFormatos(i.status || "")
+      .filter((f) => f !== "nao-postou")
+      .forEach((f) => {
+        formatCounts[f] = (formatCounts[f] || 0) + 1;
+      });
   });
-  const chartData = Object.entries(formatCounts).map(([label, value]) => ({
-    name: label,
+  const chartData = (Object.entries(formatCounts) as [StatusType, number][]).map(([formato, value]) => ({
+    name: STATUS_CONFIG[formato].label,
     value,
-    color: FORMAT_META[normaliza(label)]?.color || "#94A3B8",
+    color: STATUS_CONFIG[formato].color,
   }));
 
-  const attentionList = influencers.filter((i) => ehNaoPostou(i.status || ""));
+  const attentionList = influencers.filter((i) => !contaComoPostou(i.status || ""));
 
   const kpis = [
     { label: "Postaram hoje", value: posted, color: "#30D158", sub: `de ${total} influenciadores` },
@@ -152,6 +134,11 @@ export default function Home() {
             <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Metas da semana — automação de quantas entregas faltam por influenciador */}
+      <div className="mt-6">
+        <MetasSemana influencers={influencers} registros={registros} />
       </div>
 
       {/* Gráficos principais */}
@@ -261,16 +248,30 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">Sem registros no histórico.</p>
             ) : (
               ultimosRegistros.map((r, i) => {
-                const meta = metaStatus(r.status);
+                const formatos = parseFormatos(r.status);
                 return (
                   <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-white/50 p-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">{r.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">{r.username} · {r.data}</p>
                     </div>
-                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-white" style={{ backgroundColor: meta.color }}>
-                      {meta.label}
-                    </span>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                      {formatos.length === 0 ? (
+                        <span className="rounded-full bg-[#94A3B8] px-3 py-1 text-xs font-medium text-white">
+                          {r.status || "—"}
+                        </span>
+                      ) : (
+                        formatos.map((f) => (
+                          <span
+                            key={f}
+                            className="rounded-full px-3 py-1 text-xs font-medium text-white"
+                            style={{ backgroundColor: STATUS_CONFIG[f].color }}
+                          >
+                            {STATUS_CONFIG[f].label}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                 );
               })

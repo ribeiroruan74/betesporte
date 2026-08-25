@@ -25,6 +25,49 @@ export const STATUS_TO_SHEET: Record<StatusType, string> = {
   "nao-postou": "Não Postou",
 };
 
+export function normalizaTexto(s: string) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Um dia de registro pode conter mais de uma entrega (ex.: influenciador posta
+ * Story + Link E Feed/Reels no mesmo dia). O site salva isso como um único
+ * texto combinado ("Feed / Reels / Story + Link"). Esta função quebra esse
+ * texto em cada StatusType individual que ele contém, para permitir contar e
+ * filtrar feed/reels separado de story+link mesmo quando foram postados
+ * juntos no mesmo dia.
+ */
+export function parseFormatos(statusRaw: string): StatusType[] {
+  const n = normalizaTexto(statusRaw);
+  if (!n) return [];
+
+  const encontrados: StatusType[] = [];
+  // "Story Sem Link" precisa ser checado antes de "story" genérico
+  if (n.includes("story") && n.includes("sem") && n.includes("link")) {
+    encontrados.push("story-sem-link");
+  } else if (n.includes("story") && n.includes("link")) {
+    encontrados.push("story-link");
+  } else if (n.includes("story")) {
+    encontrados.push("story-sem-link");
+  }
+  if (n.includes("branding")) encontrados.push("branding");
+  if (n.includes("feed") || n.includes("reels")) encontrados.push("feed-reels");
+
+  if (encontrados.length > 0) return encontrados;
+  if (n.includes("nao") || n.includes("pendente")) return ["nao-postou"];
+  return [];
+}
+
+/** true se o registro do dia conta como "postou" (tem alguma entrega válida) */
+export function contaComoPostou(statusRaw: string): boolean {
+  const formatos = parseFormatos(statusRaw);
+  return formatos.length > 0 && !formatos.includes("nao-postou");
+}
+
 // Lista de exemplo (usada só enquanto a API não está conectada)
 export const influencers = [
   { id: 1, name: "Ana Souza", username: "@anasouza" },

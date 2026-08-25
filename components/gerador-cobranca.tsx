@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/toast";
 import { CopyIcon, MessageCircleIcon, CalendarRangeIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { STATUS_CONFIG, contaComoPostou, parseFormatos } from "@/lib/influencers";
 
 interface Influenciador {
   id: number;
@@ -18,22 +19,12 @@ interface Registro {
   status: string;
 }
 
-function normaliza(s: string) {
-  return (s || "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9+]/g, "");
-}
-
-function contaComoPostou(status: string) {
-  const n = normaliza(status);
-  return n === "story+link" || n === "storysemlink" || n === "feedreels";
-}
-
+// Um dia pode ter mais de uma entrega (ex.: Story + Link E Feed/Reels no
+// mesmo dia) — mostra todos os formatos encontrados, não só o primeiro.
 function statusLabel(status: string) {
-  const n = normaliza(status);
-  if (n === "story+link") return "Story + Link";
-  if (n === "storysemlink") return "Story Sem Link";
-  if (n === "branding") return "Branding";
-  if (n === "feedreels") return "Feed/Reels";
-  return "Não Postou";
+  const formatos = parseFormatos(status).filter((f) => f !== "nao-postou");
+  if (formatos.length === 0) return "Não Postou";
+  return formatos.map((f) => STATUS_CONFIG[f].label).join(" + ");
 }
 
 function isoParaBR(iso: string) {

@@ -3,34 +3,13 @@
 import { useMemo, useState } from "react";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { cn } from "@/lib/utils";
-
-const FORMAT_COLORS: Record<string, string> = {
-	"story + link": "#75CEFF",
-	"story sem link": "#5AC8FA",
-	branding: "#AF52DE",
-	"feed/reels": "#FF9500",
-	"nao postou": "#FF3B30",
-};
-
-function normaliza(s: string) {
-	return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-}
+import { STATUS_CONFIG, parseFormatos } from "@/lib/influencers";
 
 function paraISO(data: string) {
 	const p = data.split("/");
 	if (p.length !== 3) return "";
 	const ano = (p[2].length === 2 ? "20" + p[2] : p[2]).padStart(4, "0");
 	return `${ano}-${String(parseInt(p[1]) || 0).padStart(2, "0")}-${String(parseInt(p[0]) || 0).padStart(2, "0")}`;
-}
-
-function corDoFormato(status: string) {
-	const n = normaliza(status);
-	if (n.includes("story") && n.includes("link")) return FORMAT_COLORS["story + link"];
-	if (n.includes("story")) return FORMAT_COLORS["story sem link"];
-	if (n.includes("branding")) return FORMAT_COLORS.branding;
-	if (n.includes("feed") || n.includes("reels")) return FORMAT_COLORS["feed/reels"];
-	if (n.includes("nao") || n.includes("pendente")) return FORMAT_COLORS["nao postou"];
-	return "#94A3B8";
 }
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -108,9 +87,12 @@ export function Calendario() {
 						>
 							<span className="font-medium text-foreground">{dia}</span>
 							<div className="flex flex-wrap justify-center gap-0.5">
-								{regs.slice(0, 3).map((r, j) => (
-									<span key={j} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: corDoFormato(r.status) }} />
-								))}
+								{regs
+									.flatMap((r) => parseFormatos(r.status))
+									.slice(0, 4)
+									.map((f, j) => (
+										<span key={j} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: STATUS_CONFIG[f].color }} />
+									))}
 							</div>
 						</button>
 					);
@@ -130,10 +112,18 @@ export function Calendario() {
 					) : (
 						<ul className="flex flex-col gap-2">
 							{registrosDoDia.map((r, i) => (
-								<li key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-									<span className="text-sm font-medium text-foreground">{r.nome}</span>
-									<span className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: corDoFormato(r.status) }}>
-										{r.status}
+								<li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+									<span className="min-w-0 truncate text-sm font-medium text-foreground">{r.nome}</span>
+									<span className="flex shrink-0 flex-wrap justify-end gap-1">
+										{parseFormatos(r.status).map((f) => (
+											<span
+												key={f}
+												className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+												style={{ backgroundColor: STATUS_CONFIG[f].color }}
+											>
+												{STATUS_CONFIG[f].label}
+											</span>
+										))}
 									</span>
 								</li>
 							))}

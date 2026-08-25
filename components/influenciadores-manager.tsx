@@ -1,12 +1,14 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
-import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon } from "lucide-react";
+import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon, TargetIcon } from "lucide-react";
+import { useMetas } from "@/lib/use-metas";
 
 interface Inf { linha: number; nome: string; username: string; link: string; }
 
 export function InfluenciadoresManager() {
   const { mostrar } = useToast();
+  const { obterMeta, definirMeta } = useMetas();
   const [lista, setLista] = useState<Inf[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [nome, setNome] = useState("");
@@ -16,6 +18,7 @@ export function InfluenciadoresManager() {
   const [edNome, setEdNome] = useState("");
   const [edUser, setEdUser] = useState("");
   const [edLink, setEdLink] = useState("");
+  const [metasAbertas, setMetasAbertas] = useState<number | null>(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -137,22 +140,60 @@ export function InfluenciadoresManager() {
                 </div>
               </div>
             ) : (
-              <div key={inf.linha} className="flex items-center justify-between gap-3 rounded-xl bg-white/60 p-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
-                  <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
+              <div key={inf.linha} className="rounded-xl bg-white/60 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
+                    <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      onClick={() => setMetasAbertas(metasAbertas === inf.linha ? null : inf.linha)}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      title="Metas semanais de entrega"
+                    >
+                      <TargetIcon className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { setEditando(inf.linha); setEdNome(inf.nome); setEdUser(inf.username); setEdLink(inf.link); }}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <PencilIcon className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => remover(inf)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-red-500 hover:text-red-400">
+                      <Trash2Icon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    onClick={() => { setEditando(inf.linha); setEdNome(inf.nome); setEdUser(inf.username); setEdLink(inf.link); }}
-                    className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <PencilIcon className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => remover(inf)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-red-500 hover:text-red-400">
-                    <Trash2Icon className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+
+                {metasAbertas === inf.linha && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+                    <label className="text-xs text-muted-foreground">
+                      Stories / semana
+                      <input
+                        type="number"
+                        min={0}
+                        value={obterMeta(inf.nome).storiesSemana}
+                        onChange={(e) =>
+                          definirMeta(inf.nome, { ...obterMeta(inf.nome), storiesSemana: Math.max(0, parseInt(e.target.value, 10) || 0) })
+                        }
+                        className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                      />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      Feed/Reels / semana
+                      <input
+                        type="number"
+                        min={0}
+                        value={obterMeta(inf.nome).feedSemana}
+                        onChange={(e) =>
+                          definirMeta(inf.nome, { ...obterMeta(inf.nome), feedSemana: Math.max(0, parseInt(e.target.value, 10) || 0) })
+                        }
+                        className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             )
           )
