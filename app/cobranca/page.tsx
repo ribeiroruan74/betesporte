@@ -14,8 +14,13 @@ import {
 import { STATUS_CONFIG, contaComoPostou, parseFormatos } from "@/lib/influencers";
 import { useMetas } from "@/lib/use-metas";
 import type { MetaSemanal } from "@/lib/metas";
+import { useFinanceiro } from "@/lib/use-financeiro";
 import { inicioDaSemana, fimDaSemana } from "@/lib/use-metas-semana";
 import { cn } from "@/lib/utils";
+
+function formatarBRL(valor: number) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function statusLabel(status: string) {
   const formatos = parseFormatos(status).filter((f) => f !== "nao-postou");
@@ -123,7 +128,7 @@ function metaProporcional(meta: MetaSemanal, diasNoPeriodo: number) {
   };
 }
 
-function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, meta: MetaSemanal): string {
+function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, meta: MetaSemanal, valorPorEntrega: number): string {
   const linhas = a.dias.map((d, i) => `${i + 1}. ${d.postou ? "✅" : "❌"} ${d.br} — ${statusLabel(d.status)}`);
   const temMeta = meta.storiesSemana > 0 || meta.feedSemana > 0;
   const { storiesMeta, feedMeta } = metaProporcional(meta, a.dias.length);
@@ -137,6 +142,11 @@ function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, met
       ]
     : [];
 
+  const blocoValor =
+    valorPorEntrega > 0
+      ? ["━━━━━━━━━━━━━━━━━━━━", `💰 *Valor a receber:* ${formatarBRL(a.entregas * valorPorEntrega)} (${a.entregas} × ${formatarBRL(valorPorEntrega)})`]
+      : [];
+
   return [
     "📲 *COBRANÇA DE POSTAGENS*",
     "━━━━━━━━━━━━━━━━━━━━",
@@ -146,6 +156,7 @@ function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, met
     `✅ *Entregas confirmadas:* ${a.entregas}`,
     `❌ *Dias sem postar:* ${a.diasSem}`,
     ...blocoMeta,
+    ...blocoValor,
     "━━━━━━━━━━━━━━━━━━━━",
     "*Status por dia:*",
     ...linhas,
@@ -158,6 +169,7 @@ export default function CobrancaPage() {
   const { registros } = useBancoDados();
   const { mostrar } = useToast();
   const { obterMeta } = useMetas();
+  const { obterFinanceiro } = useFinanceiro();
 
   const [de, setDe] = useState(diasAtrasISO(6));
   const [ate, setAte] = useState(hojeISO());
@@ -219,7 +231,9 @@ export default function CobrancaPage() {
   const deBR = isoParaBR(de);
   const ateBR = isoParaBR(ate);
 
-  const mensagem = atual ? gerarMensagem(atual, deBR, ateBR, obterMeta(atual.inf.name)) : "";
+  const mensagem = atual
+    ? gerarMensagem(atual, deBR, ateBR, obterMeta(atual.inf.name), obterFinanceiro(atual.inf.name).valorPorEntrega)
+    : "";
   const whatsappLink = atual
     ? `https://wa.me/?text=${encodeURIComponent(mensagem)}`
     : "";
@@ -360,6 +374,17 @@ export default function CobrancaPage() {
                   <span className={cn("font-semibold", atual.feedEntregues < feedMeta ? "text-[#FF3B30]" : "text-[#30D158]")}>
                     🎬 Feed/Reels {atual.feedEntregues}/{feedMeta}
                   </span>
+                </div>
+              );
+            })()}
+
+            {(() => {
+              const valorPorEntrega = obterFinanceiro(atual.inf.name).valorPorEntrega;
+              if (valorPorEntrega <= 0) return null;
+              return (
+                <div className="mt-3 flex items-center justify-between rounded-xl bg-[#30D158]/10 px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">Valor a receber no período</span>
+                  <span className="font-bold text-[#30D158]">{formatarBRL(atual.entregas * valorPorEntrega)}</span>
                 </div>
               );
             })()}

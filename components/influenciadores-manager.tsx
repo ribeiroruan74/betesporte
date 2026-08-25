@@ -3,12 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
 import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon, TargetIcon, Square, SquareCheckIcon } from "lucide-react";
 import { useMetas } from "@/lib/use-metas";
+import { useFotos } from "@/lib/use-fotos";
+import { useFinanceiro } from "@/lib/use-financeiro";
+import { InfluencerAvatar } from "@/components/influencer-avatar";
 
 interface Inf { linha: number; nome: string; username: string; link: string; }
 
 export function InfluenciadoresManager() {
   const { mostrar } = useToast();
   const { obterMeta, definirMeta } = useMetas();
+  const { obterFoto, definirFoto } = useFotos();
+  const { obterFinanceiro, definirValorPorEntrega } = useFinanceiro();
   const [lista, setLista] = useState<Inf[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [nome, setNome] = useState("");
@@ -275,6 +280,7 @@ export function InfluenciadoresManager() {
                         <Square className="h-4.5 w-4.5" />
                       )}
                     </button>
+                    <InfluencerAvatar nome={inf.nome} fotoUrl={obterFoto(inf.nome)} className="h-8 w-8 text-xs" />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
                       <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
@@ -323,6 +329,27 @@ export function InfluenciadoresManager() {
                         onChange={(e) =>
                           definirMeta(inf.nome, { ...obterMeta(inf.nome), feedSemana: Math.max(0, parseInt(e.target.value, 10) || 0) })
                         }
+                        className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                      />
+                    </label>
+                    <label className="col-span-2 text-xs text-muted-foreground">
+                      URL da foto de perfil (opcional)
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        defaultValue={obterFoto(inf.nome)}
+                        onBlur={(e) => definirFoto(inf.nome, e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                      />
+                    </label>
+                    <label className="col-span-2 text-xs text-muted-foreground">
+                      Valor por entrega (R$, opcional — usado na Cobrança)
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={obterFinanceiro(inf.nome).valorPorEntrega || ""}
+                        onChange={(e) => definirValorPorEntrega(inf.nome, Math.max(0, parseFloat(e.target.value) || 0))}
                         className="mt-1 w-full rounded-lg border border-border bg-white/70 px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
                       />
                     </label>

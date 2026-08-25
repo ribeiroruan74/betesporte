@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FinalizarDiaButton } from "@/components/finalizar-dia-button";
 import { AppShell } from "@/components/app-shell";
@@ -8,7 +9,7 @@ import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, contaComoPostou, parseFormatos, type StatusType } from "@/lib/influencers";
 import { MetasSemana } from "@/components/metas-semana";
 import { StatCard } from "@/components/stat-card";
-import { CheckCircle2Icon, AlertCircleIcon, TargetIcon, UsersIcon, TrendingUpIcon, LayersIcon } from "lucide-react";
+import { CheckCircle2Icon, AlertCircleIcon, TargetIcon, UsersIcon, TrendingUpIcon, LayersIcon, AlarmClockIcon } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, CartesianGrid,
@@ -21,9 +22,29 @@ function paraISO(data: string) {
   return `${ano}-${String(parseInt(p[1]) || 0).padStart(2, "0")}-${String(parseInt(p[0]) || 0).padStart(2, "0")}`;
 }
 
+function brDate(d: Date) {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
 export default function Home() {
   const { influencers, loading } = useInfluencers();
   const { registros } = useBancoDados();
+
+  // Lembrete de dia não finalizado: só calcula no cliente (depende do
+  // horário atual e da config salva) pra não conflitar com a hidratação.
+  const [passouHorarioLimite, setPassouHorarioLimite] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("betesporte_config");
+      const horarioLimite = raw ? (JSON.parse(raw)?.regras?.horarioLimite as string | undefined) : undefined;
+      const [h, m] = (horarioLimite || "23:59").split(":").map((n) => parseInt(n, 10));
+      const limite = new Date();
+      limite.setHours(isNaN(h) ? 23 : h, isNaN(m) ? 59 : m, 0, 0);
+      setPassouHorarioLimite(new Date() >= limite);
+    } catch {
+      // ignora — sem lembrete se a config não puder ser lida
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -65,6 +86,17 @@ export default function Home() {
     ? Math.round(serieAdesao.reduce((s, d) => s + d.adesao, 0) / serieAdesao.length)
     : 0;
 
+  // Comparativo com o mesmo dia da semana passada (arquivado no BANCO_DE_DADOS
+  // quando aquele dia foi finalizado) — só mostra o delta se houver esse dado.
+  const semanaPassadaBR = brDate(new Date(Date.now() - 7 * 86400000));
+  const statsSemanaPassada = porDia.get(semanaPassadaBR);
+  const deltaPostaram = statsSemanaPassada ? posted - statsSemanaPassada.postaram : undefined;
+  const adesaoSemanaPassada =
+    statsSemanaPassada && statsSemanaPassada.total > 0
+      ? Math.round((statsSemanaPassada.postaram / statsSemanaPassada.total) * 100)
+      : undefined;
+  const deltaAdesao = adesaoSemanaPassada !== undefined ? adesao - adesaoSemanaPassada : undefined;
+
   // ===== Distribuição por formato =====
   // Cada formato entregue hoje soma na sua própria fatia — um influenciador
   // que postou Story + Link E Feed/Reels no mesmo dia soma nas duas fatias,
@@ -86,12 +118,12 @@ export default function Home() {
   const attentionList = influencers.filter((i) => !contaComoPostou(i.status || ""));
 
   const kpis = [
-    { label: "Postaram hoje", value: posted, color: "#30D158", sub: `de ${total} influenciadores`, icon: CheckCircle2Icon, hero: true },
-    { label: "Não postaram", value: inadimplentes, color: "#FF3B30", sub: "inadimplentes", icon: AlertCircleIcon, hero: false },
-    { label: "% adesão hoje", value: `${adesao}%`, color: "#0071E3", sub: "meta do dia", icon: TargetIcon, hero: false },
-    { label: "Total", value: total, color: "#AF52DE", sub: "influenciadores", icon: UsersIcon, hero: false },
-    { label: "Média de adesão", value: `${mediaAdesao}%`, color: "#5AC8FA", sub: "últimos dias", icon: TrendingUpIcon, hero: false },
-    { label: "Formatos usados", value: formatosUsados, color: "#FF9500", sub: "hoje", icon: LayersIcon, hero: false },
+    { label: "Postaram hoje", value: posted, color: "#30D158", sub: `de ${total} influenciadores`, icon: CheckCircle2Icon, hero: true, delta: deltaPostaram },
+    { label: "Não postaram", value: inadimplentes, color: "#FF3B30", sub: "inadimplentes", icon: AlertCircleIcon, hero: false, delta: undefined },
+    { label: "% adesão hoje", value: `${adesao}%`, color: "#0071E3", sub: "meta do dia", icon: TargetIcon, hero: false, delta: deltaAdesao },
+    { label: "Total", value: total, color: "#AF52DE", sub: "influenciadores", icon: UsersIcon, hero: false, delta: undefined },
+    { label: "Média de adesão", value: `${mediaAdesao}%`, color: "#5AC8FA", sub: "últimos dias", icon: TrendingUpIcon, hero: false, delta: undefined },
+    { label: "Formatos usados", value: formatosUsados, color: "#FF9500", sub: "hoje", icon: LayersIcon, hero: false, delta: undefined },
   ];
 
   const ultimosRegistros = registros
@@ -123,6 +155,18 @@ export default function Home() {
         </div>
       </div>
 
+      {passouHorarioLimite && inadimplentes > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[#FF9500]/30 bg-[#FF9500]/10 px-4 py-3">
+          <AlarmClockIcon className="h-4 w-4 shrink-0 text-[#FF9500]" />
+          <p className="min-w-0 flex-1 text-sm text-foreground">
+            Já passou do horário limite e {inadimplentes} influenciador{inadimplentes !== 1 ? "es" : ""} ainda sem status hoje.
+          </p>
+          <Link href="/registro" className="shrink-0 text-sm font-semibold text-[#FF9500] hover:underline">
+            Registrar agora →
+          </Link>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi, i) => (
@@ -134,6 +178,7 @@ export default function Home() {
             icon={kpi.icon}
             color={kpi.color}
             hero={kpi.hero}
+            delta={kpi.delta}
             className="card-animate"
             style={{ animationDelay: `${i * 60}ms` }}
           />

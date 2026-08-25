@@ -24,6 +24,7 @@ export default function RankingPage() {
   const { influencers, loading: loadingInfluencers } = useInfluencers();
   const { linhas: metas, inicio, fim } = useLinhasMetaSemana(influencers, registros);
   const [modo, setModo] = useState<"assiduidade" | "meta">("assiduidade");
+  const [filtroCumprimento, setFiltroCumprimento] = useState<"todos" | "bateu" | "nao-bateu">("todos");
 
   const loading = loadingRegistros || loadingInfluencers;
 
@@ -263,9 +264,44 @@ export default function RankingPage() {
 
           {/* Lista completa */}
           <div className="mt-6 rounded-2xl border border-border bg-card p-6">
-            <h2 className="mb-4 text-sm font-semibold text-foreground">Todos os influenciadores com meta</h2>
-            <div className="flex flex-col gap-3">
-              {comMeta.map((m) => (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-foreground">Todos os influenciadores com meta</h2>
+              <div className="flex gap-1.5">
+                {([
+                  { key: "todos", label: "Todos" },
+                  { key: "bateu", label: "Bateu a meta" },
+                  { key: "nao-bateu", label: "Não bateu" },
+                ] as const).map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFiltroCumprimento(f.key)}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                      filtroCumprimento === f.key
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              {comMeta.filter((m) => {
+                if (filtroCumprimento === "bateu") return m.pct >= 100;
+                if (filtroCumprimento === "nao-bateu") return m.pct < 100;
+                return true;
+              }).length === 0 && (
+                <p className="text-sm text-muted-foreground">Ninguém nesse filtro.</p>
+              )}
+              {comMeta
+                .filter((m) => {
+                  if (filtroCumprimento === "bateu") return m.pct >= 100;
+                  if (filtroCumprimento === "nao-bateu") return m.pct < 100;
+                  return true;
+                })
+                .map((m) => (
                 <div key={m.nome} className="flex items-center justify-between rounded-xl border border-border p-3">
                   <div>
                     <p className="text-sm font-medium text-foreground">{m.nome}</p>

@@ -1,11 +1,21 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
 import { STATUS_CONFIG, parseFormatos, type StatusType } from "@/lib/influencers";
-import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon } from "lucide-react";
+import { useFotos } from "@/lib/use-fotos";
+import { InfluencerAvatar } from "@/components/influencer-avatar";
+import { useToast } from "@/components/toast";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon, WifiOffIcon, KeyboardIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
+const FILA_KEY = "betesporte_registro_fila";
+
+interface ItemFila {
+  name: string;
+  status: string;
+  timestamp: number;
+}
 
 function hojeFormatado() {
   return new Date().toLocaleDateString("pt-BR", {
@@ -13,6 +23,23 @@ function hojeFormatado() {
     day: "2-digit",
     month: "long",
   });
+}
+
+function lerFila(): ItemFila[] {
+  try {
+    const raw = localStorage.getItem(FILA_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarFila(fila: ItemFila[]) {
+  try {
+    localStorage.setItem(FILA_KEY, JSON.stringify(fila));
+  } catch {
+    // localStorage indisponível — a fila só vive nesta sessão
+  }
 }
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -33,13 +60,18 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+const STATUS_ORDEM = (Object.keys(STATUS_CONFIG) as StatusType[]).filter((s) => s !== "nao-postou");
+
 export default function RegistroPage() {
   const { influencers, loading } = useInfluencers();
+  const { obterFoto } = useFotos();
+  const { mostrar } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<StatusType[]>([]);
   const [saving, setSaving] = useState(false);
   const [showSeletor, setShowSeletor] = useState(false);
+  const [filaPendente, setFilaPendente] = useState<ItemFila[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carrega o último índice salvo quando os influenciadores carregam
@@ -65,8 +97,63 @@ export default function RegistroPage() {
     };
   }, []);
 
+  // Fila offline: tenta enviar de novo quando a conexão voltar
+  const sincronizarFila = useCallback(async () => {
+    const fila = lerFila();
+    if (fila.length === 0) return;
+    const restantes: ItemFila[] = [];
+    let enviados = 0;
+    for (const item of fila) {
+      try {
+        const res = await fetch("/api/registro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: item.name, status: item.status }),
+        });
+        if (res.ok) enviados++;
+        else restantes.push(item);
+      } catch {
+        restantes.push(item);
+      }
+    }
+    salvarFila(restantes);
+    setFilaPendente(restantes);
+    if (enviados > 0) {
+      mostrar(`${enviados} registro(s) pendente(s) sincronizado(s)`);
+    }
+  }, [mostrar]);
+
+  useEffect(() => {
+    setFilaPendente(lerFila());
+    window.addEventListener("online", sincronizarFila);
+    return () => window.removeEventListener("online", sincronizarFila);
+  }, [sincronizarFila]);
+
   function combinedLabel() {
     return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
+  }
+
+  // Salva o status de um influenciador (usado tanto no fluxo principal
+  // quanto na revisão rápida do fim do dia). Se estiver offline, guarda
+  // numa fila local e sincroniza quando a conexão voltar.
+  async function persistirStatus(nome: string, sel: StatusType[]) {
+    if (sel.length === 0) return;
+    const combined = sel.map((s) => STATUS_CONFIG[s].label).join(" / ");
+    try {
+      const res = await fetch("/api/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nome, status: combined }),
+      });
+      if (!res.ok) throw new Error("Falha ao salvar");
+      setStatuses((prev) => ({ ...prev, [nome]: combined }));
+    } catch {
+      const fila = [...lerFila(), { name: nome, status: combined, timestamp: Date.now() }];
+      salvarFila(fila);
+      setFilaPendente(fila);
+      setStatuses((prev) => ({ ...prev, [nome]: combined }));
+      mostrar({ titulo: "Sem conexão", descricao: "Guardado localmente — sincroniza quando a internet voltar", tipo: "info" });
+    }
   }
 
   function toggleStatus(status: StatusType) {
@@ -89,17 +176,9 @@ export default function RegistroPage() {
 
   async function salvarEavancar(sel: StatusType[]) {
     if (!current || sel.length === 0 || saving) return;
-    const combined = sel.map((s) => STATUS_CONFIG[s].label).join(" / ");
     setSaving(true);
     try {
-      await fetch("/api/registro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: current.name, status: combined }),
-      });
-      setStatuses((prev) => ({ ...prev, [current.name]: combined }));
-    } catch (e) {
-      alert("Erro ao salvar o status. Tente novamente.");
+      await persistirStatus(current.name, sel);
     } finally {
       setSaving(false);
       setSelected([]);
@@ -139,6 +218,38 @@ export default function RegistroPage() {
     setShowSeletor(false);
   }
 
+  const current = influencers[currentIndex];
+  const isDone = currentIndex >= influencers.length;
+
+  // Atalhos de teclado: 1-4 pra cada status, 0 pra não postou, setas pra navegar
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (saving || showSeletor || isDone) return;
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && ["INPUT", "SELECT", "TEXTAREA"].includes(alvo.tagName)) return;
+
+      if (e.key >= "1" && e.key <= "4") {
+        const idx = parseInt(e.key, 10) - 1;
+        if (STATUS_ORDEM[idx]) {
+          e.preventDefault();
+          toggleStatus(STATUS_ORDEM[idx]);
+        }
+      } else if (e.key === "0") {
+        e.preventDefault();
+        toggleStatus("nao-postou");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        pular();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBack();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saving, showSeletor, isDone, currentIndex, selected]);
+
   if (loading) {
     return (
       <AppShell>
@@ -155,26 +266,76 @@ export default function RegistroPage() {
     );
   }
 
-  const current = influencers[currentIndex];
-  const isDone = currentIndex >= influencers.length;
   const postedCount = Object.keys(statuses).length;
 
   if (isDone) {
     return (
       <AppShell>
-        <div className="glass-card card-animate mt-6 rounded-2xl p-8 text-center">
+        <div className="glass-card card-animate mt-6 rounded-2xl p-6 text-center">
           <p className="text-4xl">🎉</p>
           <h1 className="mt-3 text-2xl font-bold text-foreground">Dia finalizado!</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {postedCount} de {influencers.length} influenciadores registrados.
+            {postedCount} de {influencers.length} influenciadores registrados. Revise ou corrija abaixo se precisar.
           </p>
           <button
             onClick={comecarDoInicio}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
           >
             <RotateCcwIcon className="h-4 w-4" />
             Começar novo registro
           </button>
+        </div>
+
+        {/* Revisão rápida — editável na hora */}
+        <div className="glass-card card-animate mt-4 rounded-2xl p-4">
+          <h2 className="px-2 text-sm font-semibold text-foreground">Revisão de hoje</h2>
+          <div className="mt-2 flex flex-col gap-2">
+            {influencers.map((inf) => {
+              const raw = statuses[inf.name] ?? inf.status ?? "";
+              const formatos = parseFormatos(raw);
+              return (
+                <div key={inf.id} className="rounded-xl bg-white/60 p-3">
+                  <div className="flex items-center gap-2.5">
+                    <InfluencerAvatar nome={inf.name} fotoUrl={obterFoto(inf.name)} className="h-8 w-8 text-xs" />
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{inf.name}</p>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {STATUS_ORDEM.map((s) => {
+                      const ativo = formatos.includes(s);
+                      const config = STATUS_CONFIG[s];
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => {
+                            const semNao = formatos.filter((f) => f !== "nao-postou");
+                            const nova = semNao.includes(s) ? semNao.filter((f) => f !== s) : [...semNao, s];
+                            persistirStatus(inf.name, nova);
+                          }}
+                          className="rounded-full px-2.5 py-1 text-xs font-medium transition"
+                          style={{
+                            backgroundColor: ativo ? config.color : `${config.color}1A`,
+                            color: ativo ? "#fff" : config.color,
+                          }}
+                        >
+                          {config.icon} {config.label}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => persistirStatus(inf.name, ["nao-postou"])}
+                      className="rounded-full px-2.5 py-1 text-xs font-medium transition"
+                      style={{
+                        backgroundColor: formatos.includes("nao-postou") ? "#FF3B30" : "#FF3B301A",
+                        color: formatos.includes("nao-postou") ? "#fff" : "#FF3B30",
+                      }}
+                    >
+                      🚫 Não Postou
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </AppShell>
     );
@@ -195,16 +356,22 @@ export default function RegistroPage() {
 
   return (
     <AppShell>
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Registro</h1>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarDaysIcon className="h-3.5 w-3.5" />
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+            <CalendarDaysIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="capitalize">{hojeFormatado()}</span>
             <span className="text-border">·</span>
             {currentIndex + 1} / {influencers.length} · {postedCount} registrados
           </p>
         </div>
+        {filaPendente.length > 0 && (
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#FF9500]/10 px-3 py-1.5 text-xs font-medium text-[#FF9500]">
+            <WifiOffIcon className="h-3.5 w-3.5" />
+            {filaPendente.length} pendente{filaPendente.length !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       <div className="glass-card card-animate mt-6 rounded-2xl p-6">
@@ -254,9 +421,7 @@ export default function RegistroPage() {
 
         {/* Ícone do influenciador (avatar com inicial) + nome */}
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
-            {current.name.charAt(0)}
-          </div>
+          <InfluencerAvatar nome={current.name} fotoUrl={obterFoto(current.name)} className="h-12 w-12 text-lg" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold text-foreground">{current.name}</p>
             <p className="truncate text-sm text-muted-foreground">{current.username}</p>
@@ -300,29 +465,30 @@ export default function RegistroPage() {
 
         {/* Status (grade 2x2) */}
         <div className="mt-5 grid grid-cols-2 gap-3">
-          {(Object.keys(STATUS_CONFIG) as StatusType[])
-            .filter((s) => s !== "nao-postou")
-            .map((status) => {
-              const config = STATUS_CONFIG[status];
-              const isSelected = selected.includes(status);
-              return (
-                <button
-                  key={status}
-                  onClick={() => toggleStatus(status)}
-                  disabled={saving}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95 disabled:opacity-50"
-                  style={{
-                    borderColor: isSelected ? config.color : config.color + "55",
-                    backgroundColor: isSelected ? `${config.color}33` : `${config.color}1A`,
-                    boxShadow: isSelected ? `0 0 0 2px ${config.color}` : "none",
-                  }}
-                >
-                  <span className="text-2xl">{config.icon}</span>
-                  <span className="text-sm font-medium" style={{ color: config.color }}>{config.label}</span>
-                  {isSelected && <CheckIcon className="h-4 w-4" style={{ color: config.color }} />}
-                </button>
-              );
-            })}
+          {STATUS_ORDEM.map((status, i) => {
+            const config = STATUS_CONFIG[status];
+            const isSelected = selected.includes(status);
+            return (
+              <button
+                key={status}
+                onClick={() => toggleStatus(status)}
+                disabled={saving}
+                className="relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-5 transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95 disabled:opacity-50"
+                style={{
+                  borderColor: isSelected ? config.color : config.color + "55",
+                  backgroundColor: isSelected ? `${config.color}33` : `${config.color}1A`,
+                  boxShadow: isSelected ? `0 0 0 2px ${config.color}` : "none",
+                }}
+              >
+                <span className="absolute left-2 top-2 hidden h-4 w-4 items-center justify-center rounded bg-black/10 text-[10px] font-bold text-current sm:flex">
+                  {i + 1}
+                </span>
+                <span className="text-2xl">{config.icon}</span>
+                <span className="text-sm font-medium" style={{ color: config.color }}>{config.label}</span>
+                {isSelected && <CheckIcon className="h-4 w-4" style={{ color: config.color }} />}
+              </button>
+            );
+          })}
         </div>
 
         <button
@@ -361,6 +527,11 @@ export default function RegistroPage() {
             <ArrowRightIcon className="h-4 w-4" />
           </button>
         </div>
+
+        <p className="mt-3 hidden items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground sm:flex">
+          <KeyboardIcon className="h-3 w-3" />
+          Atalhos: 1-4 status · 0 não postou · ← anterior · → pular
+        </p>
 
         {currentIndex > 0 && (
           <button

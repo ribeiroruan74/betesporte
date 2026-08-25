@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Delta, DeltaIcon, DeltaValue } from "@/components/delta";
 
 export function StatCard({
   label,
@@ -9,6 +10,7 @@ export function StatCard({
   icon: Icon,
   color,
   hero,
+  delta,
   className,
   style,
 }: {
@@ -18,6 +20,8 @@ export function StatCard({
   icon: LucideIcon;
   color: string;
   hero?: boolean;
+  /** variação vs. o mesmo dia da semana passada, em pontos — omitido quando não há dado de comparação */
+  delta?: number;
   className?: string;
   style?: CSSProperties;
 }) {
@@ -30,12 +34,20 @@ export function StatCard({
       )}
       style={style}
     >
-      <span
-        className="flex h-9 w-9 items-center justify-center rounded-full"
-        style={hero ? { backgroundColor: "rgba(255,255,255,0.2)" } : { backgroundColor: `${color}1A`, color }}
-      >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
-      </span>
+      <div className="flex items-center justify-between">
+        <span
+          className="flex h-9 w-9 items-center justify-center rounded-full"
+          style={hero ? { backgroundColor: "rgba(255,255,255,0.2)" } : { backgroundColor: `${color}1A`, color }}
+        >
+          <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
+        </span>
+        {delta !== undefined && (
+          <Delta value={delta} variant="badge" className={hero ? "bg-white/20 text-white" : undefined}>
+            <DeltaIcon variant="trend" />
+            <DeltaValue precision={0} suffix="" />
+          </Delta>
+        )}
+      </div>
       <div className="mt-5">
         <p className={cn("text-xs font-medium", hero ? "text-primary-foreground/75" : "text-muted-foreground")}>
           {label}
