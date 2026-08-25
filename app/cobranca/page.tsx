@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
+import { useBancoDados } from "@/lib/use-banco-dados";
 import { useToast } from "@/components/toast";
+import { GeradorCobranca } from "@/components/gerador-cobranca";
 
 type CobrancaStatus = "pendente" | "cobrado" | "pago";
 
@@ -36,9 +38,11 @@ function buildWhatsAppText(name: string, username: string) {
 
 export default function CobrancaPage() {
   const { influencers, loading } = useInfluencers();
+  const { registros } = useBancoDados();
   const { mostrar } = useToast();
   const [cobrancas, setCobrancas] = useState<Record<number, CobrancaStatus>>({});
   const [cobradoEm, setCobradoEm] = useState<Record<number, string>>({});
+  const [abertoId, setAbertoId] = useState<number | null>(null);
 
   // Carrega o estado persistido do dia
   useEffect(() => {
@@ -54,7 +58,9 @@ export default function CobrancaPage() {
 
   // Persiste a cada mudança
   useEffect(() => {
-    localStorage.setItem(CHAVE(), JSON.stringify({ cobrancas, cobradoEm }));
+    try {
+      localStorage.setItem(CHAVE(), JSON.stringify({ cobrancas, cobradoEm }));
+    } catch { /* ignore */ }
   }, [cobrancas, cobradoEm]);
 
   if (loading) {
@@ -181,6 +187,18 @@ export default function CobrancaPage() {
                   </button>
                 )}
               </div>
+
+              {/* Botão + gerador de cobrança personalizada */}
+              <button
+                onClick={() => setAbertoId((v) => (v === inf.id ? null : inf.id))}
+                className="mt-3 w-full rounded-lg border border-border bg-white/40 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                {abertoId === inf.id ? "Fechar cobrança personalizada" : "📝 Cobrança personalizada (período)"}
+              </button>
+
+              {abertoId === inf.id && (
+                <GeradorCobranca influenciador={inf} registros={registros} />
+              )}
             </div>
           );
         })}
