@@ -5,7 +5,7 @@ import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, contaComoPostou, normalizaTexto, parseFormatos, type StatusType } from "@/lib/influencers";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer } from "recharts";
-import { TrendingUpIcon } from "lucide-react";
+import { TrendingUpIcon, PrinterIcon, CalendarClockIcon } from "lucide-react";
 
 const FILTROS_FORMATO: (StatusType | "todos")[] = [
   "todos",
@@ -110,6 +110,37 @@ export default function RelatoriosPage() {
       .sort((a, b) => (a.iso < b.iso ? -1 : 1));
   }, [registros, influenciador, de, ate, mes]);
 
+  // Comparativo mês atual vs mês passado — independente dos filtros ativos
+  const comparativoMensal = useMemo(() => {
+    const hoje = new Date();
+    const mesAtualChave = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+    const passadoDate = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const mesPassadoChave = `${passadoDate.getFullYear()}-${String(passadoDate.getMonth() + 1).padStart(2, "0")}`;
+
+    function statsDoMes(chave: string) {
+      const doMes = registros.filter((r) => {
+        const p = r.data.split("/");
+        if (p.length !== 3) return false;
+        const ano = String(parseInt(p[2]) || 0);
+        const mesNum = String(parseInt(p[1]) || 0).padStart(2, "0");
+        return `${ano}-${mesNum}` === chave;
+      });
+      const totalMes = doMes.length;
+      const postaramMes = doMes.filter((r) => contaComoPostou(r.status)).length;
+      return {
+        total: totalMes,
+        postaram: postaramMes,
+        adesao: totalMes > 0 ? Math.round((postaramMes / totalMes) * 100) : 0,
+      };
+    }
+
+    const atual = statsDoMes(mesAtualChave);
+    const passado = statsDoMes(mesPassadoChave);
+    const nomeMesAtual = hoje.toLocaleDateString("pt-BR", { month: "long" });
+    const nomeMesPassado = passadoDate.toLocaleDateString("pt-BR", { month: "long" });
+    return { atual, passado, nomeMesAtual, nomeMesPassado };
+  }, [registros]);
+
   if (loading) {
     return (
       <AppShell>
@@ -139,18 +170,27 @@ export default function RelatoriosPage() {
           <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
           <p className="mt-1 text-sm text-muted-foreground">Filtre por período, mês, influenciador ou formato</p>
         </div>
-        {temFiltro && (
+        <div className="flex gap-2 print:hidden">
+          {temFiltro && (
+            <button
+              onClick={() => { setDe(""); setAte(""); setMes(""); setInfluenciador(""); setFormatoFiltro("todos"); }}
+              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Limpar filtros
+            </button>
+          )}
           <button
-            onClick={() => { setDe(""); setAte(""); setMes(""); setInfluenciador(""); setFormatoFiltro("todos"); }}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:brightness-110"
           >
-            Limpar filtros
+            <PrinterIcon className="h-4 w-4" />
+            Exportar PDF
           </button>
-        )}
+        </div>
       </div>
 
       {/* Filtros — grid-cols-1 no mobile para as datas não se sobreporem */}
-      <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+      <div className="glass-card card-animate mt-6 rounded-2xl p-6 print:hidden">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground">De</label>
@@ -238,6 +278,40 @@ export default function RelatoriosPage() {
           </div>
         </div>
       )}
+
+      <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+        <div className="flex items-center gap-2">
+          <CalendarClockIcon className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold capitalize text-foreground">
+            {comparativoMensal.nomeMesAtual} vs {comparativoMensal.nomeMesPassado}
+          </h2>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {([
+            { label: "Registros", atual: comparativoMensal.atual.total, passado: comparativoMensal.passado.total, sufixo: "" },
+            { label: "Postaram", atual: comparativoMensal.atual.postaram, passado: comparativoMensal.passado.postaram, sufixo: "" },
+            { label: "% adesão", atual: comparativoMensal.atual.adesao, passado: comparativoMensal.passado.adesao, sufixo: "%" },
+          ] as const).map((item) => {
+            const diff = item.atual - item.passado;
+            return (
+              <div key={item.label} className="rounded-xl bg-white/60 p-4">
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-foreground">{item.atual}{item.sufixo}</p>
+                  {comparativoMensal.passado.total > 0 && (
+                    <span className={cn("text-xs font-semibold", diff > 0 ? "text-[#30D158]" : diff < 0 ? "text-[#FF3B30]" : "text-muted-foreground")}>
+                      {diff > 0 ? "↑" : diff < 0 ? "↓" : "→"} {Math.abs(diff)}{item.sufixo}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  mês passado: {item.passado}{item.sufixo}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map((kpi) => (

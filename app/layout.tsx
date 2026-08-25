@@ -24,7 +24,14 @@ export const metadata: Metadata = {
   description: "Sistema de gestão de influenciadores",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "BETesporte" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {

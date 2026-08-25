@@ -134,7 +134,7 @@ export default function Home() {
   return (
     <AppShell>
             <div className="flex justify-end">
-        <FinalizarDiaButton />
+        <FinalizarDiaButton influencers={influencers} />
       </div>
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

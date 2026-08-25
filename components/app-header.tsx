@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import { navLinks } from "@/components/app-shared";
 import { useInfluencers } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
@@ -57,6 +58,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        <PwaInstallButton />
         <ThemeToggle />
 
         {/* Busca */}
