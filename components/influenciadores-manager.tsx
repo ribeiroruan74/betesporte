@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast";
-import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon, TargetIcon } from "lucide-react";
+import { UserRoundIcon, PlusIcon, PencilIcon, Trash2Icon, CheckIcon, XIcon, Loader2Icon, TargetIcon, Square, SquareCheckIcon } from "lucide-react";
 import { useMetas } from "@/lib/use-metas";
 
 interface Inf { linha: number; nome: string; username: string; link: string; }
@@ -19,6 +19,11 @@ export function InfluenciadoresManager() {
   const [edUser, setEdUser] = useState("");
   const [edLink, setEdLink] = useState("");
   const [metasAbertas, setMetasAbertas] = useState<number | null>(null);
+  const [selecionados, setSelecionados] = useState<Set<number>>(new Set());
+  const [metaLoteAberta, setMetaLoteAberta] = useState(false);
+  const [metaLoteStories, setMetaLoteStories] = useState(0);
+  const [metaLoteFeed, setMetaLoteFeed] = useState(0);
+  const [aplicandoLote, setAplicandoLote] = useState(false);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -81,6 +86,58 @@ export function InfluenciadoresManager() {
     }
   }
 
+  function alternarSelecao(linha: number) {
+    setSelecionados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(linha)) novo.delete(linha);
+      else novo.add(linha);
+      return novo;
+    });
+  }
+
+  function limparSelecao() {
+    setSelecionados(new Set());
+    setMetaLoteAberta(false);
+  }
+
+  const influenciadoresSelecionados = lista.filter((inf) => selecionados.has(inf.linha));
+
+  async function removerSelecionados() {
+    if (influenciadoresSelecionados.length === 0) return;
+    if (!window.confirm(`Remover ${influenciadoresSelecionados.length} influenciador(es) selecionado(s)?`)) return;
+    setAplicandoLote(true);
+    try {
+      const resultados = await Promise.all(
+        influenciadoresSelecionados.map((inf) =>
+          fetch("/api/influenciadores", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nome: inf.nome }),
+          })
+        )
+      );
+      const falhas = resultados.filter((r) => !r.ok).length;
+      mostrar(
+        falhas === 0
+          ? `${influenciadoresSelecionados.length} influenciador(es) removido(s)`
+          : `${resultados.length - falhas} removido(s), ${falhas} falharam`,
+        falhas === 0 ? "success" : "error"
+      );
+      limparSelecao();
+      carregar();
+    } finally {
+      setAplicandoLote(false);
+    }
+  }
+
+  function aplicarMetaLote() {
+    influenciadoresSelecionados.forEach((inf) => {
+      definirMeta(inf.nome, { storiesSemana: metaLoteStories, feedSemana: metaLoteFeed });
+    });
+    mostrar(`Meta aplicada a ${influenciadoresSelecionados.length} influenciador(es)`);
+    limparSelecao();
+  }
+
   return (
     <div className="glass-card card-animate mt-6 rounded-2xl p-6">
       <div className="flex items-center gap-2">
@@ -116,6 +173,70 @@ export function InfluenciadoresManager() {
         </button>
       </div>
 
+      {selecionados.size > 0 && (
+        <div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {selecionados.size} selecionado{selecionados.size !== 1 ? "s" : ""}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setMetaLoteAberta((v) => !v)}
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                <TargetIcon className="h-3.5 w-3.5" />
+                Definir meta em lote
+              </button>
+              <button
+                onClick={removerSelecionados}
+                disabled={aplicandoLote}
+                className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-card px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-destructive/10 disabled:opacity-50"
+              >
+                <Trash2Icon className="h-3.5 w-3.5" />
+                Remover selecionados
+              </button>
+              <button
+                onClick={limparSelecao}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                Limpar seleção
+              </button>
+            </div>
+          </div>
+
+          {metaLoteAberta && (
+            <div className="mt-3 grid grid-cols-1 gap-2 border-t border-border pt-3 sm:grid-cols-3">
+              <label className="text-xs text-muted-foreground">
+                Stories / semana
+                <input
+                  type="number"
+                  min={0}
+                  value={metaLoteStories}
+                  onChange={(e) => setMetaLoteStories(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Feed/Reels / semana
+                <input
+                  type="number"
+                  min={0}
+                  value={metaLoteFeed}
+                  onChange={(e) => setMetaLoteFeed(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                />
+              </label>
+              <button
+                onClick={aplicarMetaLote}
+                className="mt-1 self-end rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground sm:mt-0"
+              >
+                Aplicar a {selecionados.size}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col gap-2">
         {carregando ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -142,9 +263,22 @@ export function InfluenciadoresManager() {
             ) : (
               <div key={inf.linha} className="rounded-xl bg-white/60 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
-                    <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <button
+                      onClick={() => alternarSelecao(inf.linha)}
+                      aria-label={selecionados.has(inf.linha) ? "Desmarcar" : "Selecionar"}
+                      className="shrink-0 text-muted-foreground hover:text-primary"
+                    >
+                      {selecionados.has(inf.linha) ? (
+                        <SquareCheckIcon className="h-4.5 w-4.5 text-primary" />
+                      ) : (
+                        <Square className="h-4.5 w-4.5" />
+                      )}
+                    </button>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{inf.nome}</p>
+                      <p className="truncate text-xs text-muted-foreground">{inf.username || "—"}</p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <button

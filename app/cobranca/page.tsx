@@ -12,6 +12,10 @@ import {
   RotateCcwIcon,
 } from "lucide-react";
 import { STATUS_CONFIG, contaComoPostou, parseFormatos } from "@/lib/influencers";
+import { useMetas } from "@/lib/use-metas";
+import type { MetaSemanal } from "@/lib/metas";
+import { inicioDaSemana, fimDaSemana } from "@/lib/use-metas-semana";
+import { cn } from "@/lib/utils";
 
 function statusLabel(status: string) {
   const formatos = parseFormatos(status).filter((f) => f !== "nao-postou");
@@ -36,6 +40,21 @@ function diasAtrasISO(n: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function paraISOLocal(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function semanaAtualISO() {
+  const inicio = inicioDaSemana(new Date());
+  return { de: paraISOLocal(inicio), ate: paraISOLocal(fimDaSemana(inicio)) };
+}
+
+function mesAtualISO() {
+  const hoje = new Date();
+  const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  return { de: paraISOLocal(inicio), ate: paraISOLocal(hoje) };
+}
+
 interface Influenciador {
   id: number;
   name: string;
@@ -56,6 +75,8 @@ interface AnaliseInfluenciador {
   entregas: number;
   diasSem: number;
   dias: { br: string; status: string; postou: boolean }[];
+  storiesEntregues: number;
+  feedEntregues: number;
 }
 
 function analisar(influenciadores: Influenciador[], registros: Registro[], deISO: string, ateISO: string): AnaliseInfluenciador[] {
@@ -81,12 +102,41 @@ function analisar(influenciadores: Influenciador[], registros: Registro[], deISO
     });
     const entregas = dias.filter((d) => d.postou).length;
     const diasSem = dias.length - entregas;
-    return { inf, entregas, diasSem, dias };
+    let storiesEntregues = 0;
+    let feedEntregues = 0;
+    dias.forEach((d) => {
+      const formatos = parseFormatos(d.status);
+      if (formatos.includes("story-link") || formatos.includes("story-sem-link")) storiesEntregues++;
+      if (formatos.includes("feed-reels")) feedEntregues++;
+    });
+    return { inf, entregas, diasSem, dias, storiesEntregues, feedEntregues };
   });
 }
 
-function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string): string {
+// Meta semanal configurada, ajustada proporcionalmente ao tamanho do
+// período cobrado (7 dias = meta cheia, 30 dias ≈ 4x a meta semanal etc.)
+function metaProporcional(meta: MetaSemanal, diasNoPeriodo: number) {
+  const fator = diasNoPeriodo / 7;
+  return {
+    storiesMeta: Math.round(meta.storiesSemana * fator),
+    feedMeta: Math.round(meta.feedSemana * fator),
+  };
+}
+
+function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, meta: MetaSemanal): string {
   const linhas = a.dias.map((d, i) => `${i + 1}. ${d.postou ? "✅" : "❌"} ${d.br} — ${statusLabel(d.status)}`);
+  const temMeta = meta.storiesSemana > 0 || meta.feedSemana > 0;
+  const { storiesMeta, feedMeta } = metaProporcional(meta, a.dias.length);
+
+  const blocoMeta = temMeta
+    ? [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "*Meta do período:*",
+        `📱 Stories: ${a.storiesEntregues}/${storiesMeta}`,
+        `🎬 Feed/Reels: ${a.feedEntregues}/${feedMeta}`,
+      ]
+    : [];
+
   return [
     "📲 *COBRANÇA DE POSTAGENS*",
     "━━━━━━━━━━━━━━━━━━━━",
@@ -95,6 +145,7 @@ function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string): st
     "━━━━━━━━━━━━━━━━━━━━",
     `✅ *Entregas confirmadas:* ${a.entregas}`,
     `❌ *Dias sem postar:* ${a.diasSem}`,
+    ...blocoMeta,
     "━━━━━━━━━━━━━━━━━━━━",
     "*Status por dia:*",
     ...linhas,
@@ -106,11 +157,19 @@ export default function CobrancaPage() {
   const { influencers, loading } = useInfluencers();
   const { registros } = useBancoDados();
   const { mostrar } = useToast();
+  const { obterMeta } = useMetas();
 
   const [de, setDe] = useState(diasAtrasISO(6));
   const [ate, setAte] = useState(hojeISO());
   const [indice, setIndice] = useState(0);
   const [cobrados, setCobrados] = useState<Record<string, boolean>>({});
+
+  function aplicarPreset(preset: "semana" | "mes") {
+    const { de: novoDe, ate: novoAte } = preset === "semana" ? semanaAtualISO() : mesAtualISO();
+    setDe(novoDe);
+    setAte(novoAte);
+    setIndice(0);
+  }
 
   const chavePersistencia = useMemo(() => `betesporte_cobranca_${de}_${ate}`, [de, ate]);
 
@@ -160,7 +219,7 @@ export default function CobrancaPage() {
   const deBR = isoParaBR(de);
   const ateBR = isoParaBR(ate);
 
-  const mensagem = atual ? gerarMensagem(atual, deBR, ateBR) : "";
+  const mensagem = atual ? gerarMensagem(atual, deBR, ateBR, obterMeta(atual.inf.name)) : "";
   const whatsappLink = atual
     ? `https://wa.me/?text=${encodeURIComponent(mensagem)}`
     : "";
@@ -218,6 +277,23 @@ export default function CobrancaPage() {
           <CalendarRangeIcon className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold text-foreground">Período</h2>
         </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {([
+            { key: "semana", label: "Semana atual" },
+            { key: "mes", label: "Mês atual" },
+          ] as const).map((p) => (
+            <button
+              key={p.key}
+              onClick={() => aplicarPreset(p.key)}
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              {p.label}
+            </button>
+          ))}
+          <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            Personalizado: ajuste as datas abaixo
+          </span>
+        </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-muted-foreground">De</label>
@@ -270,6 +346,23 @@ export default function CobrancaPage() {
                 {atual.diasSem} dia{atual.diasSem !== 1 ? "s" : ""} sem postar
               </span>
             </div>
+
+            {(() => {
+              const meta = obterMeta(atual.inf.name);
+              if (meta.storiesSemana === 0 && meta.feedSemana === 0) return null;
+              const { storiesMeta, feedMeta } = metaProporcional(meta, atual.dias.length);
+              return (
+                <div className="mt-3 flex flex-wrap gap-3 rounded-xl bg-white/60 px-3 py-2.5 text-xs">
+                  <span className="text-muted-foreground">Meta do período:</span>
+                  <span className={cn("font-semibold", atual.storiesEntregues < storiesMeta ? "text-[#FF3B30]" : "text-[#30D158]")}>
+                    📱 Stories {atual.storiesEntregues}/{storiesMeta}
+                  </span>
+                  <span className={cn("font-semibold", atual.feedEntregues < feedMeta ? "text-[#FF3B30]" : "text-[#30D158]")}>
+                    🎬 Feed/Reels {atual.feedEntregues}/{feedMeta}
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* Texto da mensagem */}
             <textarea

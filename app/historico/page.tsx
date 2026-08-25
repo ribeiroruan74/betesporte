@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, parseFormatos, type StatusType } from "@/lib/influencers";
@@ -42,6 +42,12 @@ export default function HistoricoPage() {
   const [busca, setBusca] = useState("");
   const [dataSelecionada, setDataSelecionada] = useState("");
   const [formatoFiltro, setFormatoFiltro] = useState<StatusType | "todos">("todos");
+
+  // Prefill da busca vindo do "Buscar influenciador" do header (?q=nome)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setBusca(q);
+  }, []);
 
   const filtrados = useMemo(() => {
     let lista = registros;

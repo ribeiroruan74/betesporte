@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, contaComoPostou, normalizaTexto, parseFormatos, type StatusType } from "@/lib/influencers";
 import { cn } from "@/lib/utils";
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer } from "recharts";
+import { TrendingUpIcon } from "lucide-react";
 
 const FILTROS_FORMATO: (StatusType | "todos")[] = [
   "todos",
@@ -24,6 +26,11 @@ function paraISO(data: string) {
 function hojeISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function deISOCurta(iso: string) {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
 }
 
 export default function RelatoriosPage() {
@@ -63,6 +70,45 @@ export default function RelatoriosPage() {
       return true;
     });
   }, [registros, de, ate, mes, influenciador, formatoFiltro]);
+
+  // Evolução de entregas ao longo do tempo para o influenciador selecionado
+  // (ignora o filtro de formato — mostra sempre todos os formatos na linha do tempo)
+  const evolucao = useMemo(() => {
+    if (!influenciador) return [];
+    const doInfluenciador = registros.filter((r) => normalizaTexto(r.nome) === normalizaTexto(influenciador));
+    const comFiltroData = doInfluenciador.filter((r) => {
+      if (mes) {
+        const p = r.data.split("/");
+        if (p.length !== 3) return false;
+        const ano = String(parseInt(p[2]) || 0);
+        const mesNum = String(parseInt(p[1]) || 0).padStart(2, "0");
+        if (`${ano}-${mesNum}` !== mes) return false;
+      }
+      if (de || ate) {
+        const iso = paraISO(r.data);
+        if (!iso) return false;
+        if (de && iso < de) return false;
+        if (ate && iso > ate) return false;
+      }
+      return true;
+    });
+
+    const porDia = new Map<string, { stories: number; feed: number; branding: number }>();
+    comFiltroData.forEach((r) => {
+      const iso = paraISO(r.data);
+      if (!iso) return;
+      const atual = porDia.get(iso) || { stories: 0, feed: 0, branding: 0 };
+      const formatos = parseFormatos(r.status);
+      if (formatos.includes("story-link") || formatos.includes("story-sem-link")) atual.stories++;
+      if (formatos.includes("feed-reels")) atual.feed++;
+      if (formatos.includes("branding")) atual.branding++;
+      porDia.set(iso, atual);
+    });
+
+    return Array.from(porDia.entries())
+      .map(([iso, v]) => ({ data: deISOCurta(iso), ...v, iso }))
+      .sort((a, b) => (a.iso < b.iso ? -1 : 1));
+  }, [registros, influenciador, de, ate, mes]);
 
   if (loading) {
     return (
@@ -167,6 +213,31 @@ export default function RelatoriosPage() {
           ))}
         </div>
       </div>
+
+      {influenciador && evolucao.length > 0 && (
+        <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+          <div className="flex items-center gap-2">
+            <TrendingUpIcon className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Evolução de {influenciador}</h2>
+          </div>
+          <div className="mt-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={evolucao} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" vertical={false} />
+                <XAxis dataKey="data" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#0B0F1A", border: "1px solid #1E293B", borderRadius: "12px", color: "#fff" }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="stories" name="Stories" stroke="#75CEFF" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="feed" name="Feed/Reels" stroke="#FF9500" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="branding" name="Branding" stroke="#AF52DE" strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpis.map((kpi) => (
