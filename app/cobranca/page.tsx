@@ -8,8 +8,6 @@ import {
   CopyIcon,
   MessageCircleIcon,
   CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CalendarRangeIcon,
   RotateCcwIcon,
 } from "lucide-react";
@@ -125,7 +123,6 @@ export default function CobrancaPage() {
   const [indice, setIndice] = useState(0);
   const [cobrados, setCobrados] = useState<Record<string, boolean>>({});
 
-  // Chave de persistência baseada no período
   const chavePersistencia = useMemo(() => `betesporte_cobranca_${de}_${ate}`, [de, ate]);
 
   // Carrega progresso persistido do período
@@ -271,7 +268,7 @@ export default function CobrancaPage() {
           </div>
 
           {/* Card do influenciador atual */}
-          <div className="glass-card card-animate mt-3 rounded-2xl p-6">
+          <div className="glass-card card-animate mt-3 rounded-2xl p-6 pb-28">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
                 {atual.inf.name.charAt(0)}
@@ -299,7 +296,7 @@ export default function CobrancaPage() {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#007BFF] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               >
                 <MessageCircleIcon className="h-4 w-4" />
                 Abrir WhatsApp
@@ -346,7 +343,7 @@ export default function CobrancaPage() {
 
       {/* Lista de cobrados */}
       {Object.keys(cobrados).length > 0 && (
-        <div className="glass-card card-animate mt-6 rounded-2xl p-5">
+        <div className="glass-card card-animate mt-6 rounded-2xl p-5 pb-28">
           <h2 className="text-sm font-semibold text-foreground">Cobrados neste período ({Object.keys(cobrados).length})</h2>
           <div className="mt-3 flex flex-col gap-2">
             {analise

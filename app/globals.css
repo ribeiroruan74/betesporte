@@ -2,27 +2,26 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   TEMA ESCURO SIMPLES — BETesporte (restaurado)
-   Flat, sem vidro, sem gradiente, sem brilho
+   TEMA PRETO + AZUL VIBRANTE — BETesporte
    ============================================================ */
 
 :root,
 .dark {
-  --background: #0b0f1a;
-  --foreground: #f4f6fb;
-  --card: #141a29;
-  --card-strong: #1c2436;
-  --card-foreground: #f4f6fb;
-  --muted: #1c2436;
-  --muted-foreground: #a8b0c0;
-  --border: #27314a;
-  --border-strong: #35405c;
-  --input: #1c2436;
-  --primary: #0a84ff;
+  --background: #000000;
+  --foreground: #f5f7ff;
+  --card: #0d0f14;
+  --card-strong: #14161d;
+  --card-foreground: #f5f7ff;
+  --muted: #14161d;
+  --muted-foreground: #9aa3b5;
+  --border: #1f2430;
+  --border-strong: #2b3140;
+  --input: #0d0f14;
+  --primary: #007bff;
   --primary-foreground: #ffffff;
-  --accent: #0a84ff;
+  --accent: #1e90ff;
   --destructive: #ff3b30;
-  --ring: #0a84ff;
+  --ring: #007bff;
   --radius-lg: 1.25rem;
   --radius-md: 0.875rem;
   --radius-sm: 0.625rem;
@@ -57,7 +56,7 @@
 
 html,
 body {
-  background-color: var(--background);
+  background-color: #000000;
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -73,55 +72,63 @@ body {
 }
 
 /* ============================================================
-   SIDEBAR — flat, limpa, sem gradiente
+   SIDEBAR — minimalista, preta
    ============================================================ */
 .glass-sidebar,
 aside,
 [class*="sidebar"] {
-  background-color: #0e1320 !important;
-  border-right: 1px solid var(--border) !important;
+  background-color: #050505 !important;
+  border-right: 1px solid #1f2430 !important;
   box-shadow: none !important;
 }
 
-/* Item ativo: fundo azul suave, sem brilho, sem traço */
+[class*="sidebar"] [class*="menu"] a {
+  color: #9aa3b5 !important;
+  border-radius: 0.5rem !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+[class*="sidebar"] [class*="menu"] a:hover {
+  background-color: #14161d !important;
+  color: #f5f7ff !important;
+}
+
 [class*="sidebar"] [data-active="true"],
 [class*="sidebar"] [aria-current="page"],
 [class*="sidebar"] a[class*="active"] {
-  background-color: rgba(10, 132, 255, 0.14) !important;
+  background-color: rgba(0, 123, 255, 0.16) !important;
   color: #ffffff !important;
   box-shadow: none !important;
-  border-radius: 0.5rem !important;
+  border-left: none !important;
 }
-
 [class*="sidebar"] [data-active="true"] svg,
 [class*="sidebar"] [aria-current="page"] svg,
 [class*="sidebar"] a[class*="active"] svg {
-  color: #ffffff !important;
+  color: #1e90ff !important;
 }
 
-/* Hover suave nos demais itens */
-[class*="sidebar"] [class*="menu"] a:hover {
-  background-color: var(--muted) !important;
-}
-
-/* Rótulos de seção */
 [class*="sidebar"] [class*="group-label"] {
-  color: var(--muted-foreground) !important;
+  color: #6e7aa0 !important;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-/* Logo */
 [class*="sidebar"] a[href="/"] {
-  color: var(--color-foreground);
+  color: #f5f7ff !important;
+}
+[class*="sidebar"] a[href="/"] span {
+  color: #f5f7ff !important;
 }
 
 /* ============================================================
-   CARDS — flat
+   CARDS — flat, preto
    ============================================================ */
 .glass-card,
 .glass-panel,
 .glass-card-strong {
-  background-color: var(--card);
-  border: 1px solid var(--border);
+  background-color: #0d0f14;
+  border: 1px solid #1f2430;
   border-radius: var(--radius-lg);
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -130,13 +137,10 @@ aside,
   overflow-wrap: break-word;
 }
 
-/* ============================================================
-   HEADER
-   ============================================================ */
 .glass-header,
 header {
-  background-color: rgba(11, 15, 26, 0.92) !important;
-  border-bottom: 1px solid var(--border) !important;
+  background-color: rgba(0, 0, 0, 0.92) !important;
+  border-bottom: 1px solid #1f2430 !important;
 }
 
 /* ============================================================
@@ -145,9 +149,9 @@ header {
 input,
 select,
 textarea {
-  background-color: var(--input) !important;
+  background-color: #0d0f14 !important;
   color: var(--color-foreground) !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid #1f2430 !important;
   border-radius: 0.625rem !important;
   max-width: 100%;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -160,13 +164,13 @@ textarea::placeholder {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--color-ring) !important;
+  border-color: #007bff !important;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25) !important;
 }
 
 [class*="bg-white/"] {
-  background-color: var(--card) !important;
+  background-color: #0d0f14 !important;
 }
 
 [class*="text-muted-foreground"],
@@ -175,26 +179,26 @@ textarea:focus {
 }
 
 /* ============================================================
-   BOTÕES — sólidos
+   BOTÕES — azul vibrante
    ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
-  background-color: var(--primary) !important;
-  color: var(--color-primary-foreground) !important;
+  background-color: #007bff !important;
+  color: #ffffff !important;
   border: none !important;
   box-shadow: none !important;
 }
 button[class*="bg-primary"]:hover,
 a[class*="bg-primary"]:hover {
-  background-color: #0a6fd6 !important;
+  background-color: #1e90ff !important;
 }
 button[class*="border"]:not([class*="bg-primary"]) {
-  background-color: var(--card) !important;
-  border: 1px solid var(--border) !important;
+  background-color: #0d0f14 !important;
+  border: 1px solid #1f2430 !important;
   color: var(--color-foreground) !important;
 }
 button[class*="border"]:not([class*="bg-primary"]):hover {
-  background-color: var(--muted) !important;
+  background-color: #14161d !important;
 }
 
 /* ============================================================
@@ -202,16 +206,16 @@ button[class*="border"]:not([class*="bg-primary"]):hover {
    ============================================================ */
 [class*="fixed"] [class*="rounded"],
 [role="dialog"] {
-  background-color: var(--card) !important;
-  border: 1px solid var(--border-strong) !important;
+  background-color: #0d0f14 !important;
+  border: 1px solid #2b3140 !important;
   max-width: 100%;
 }
 [class*="fixed"] {
-  background-color: rgba(0, 0, 0, 0.65) !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
 /* ============================================================
-   TABELAS — rolam dentro do card
+   TABELAS
    ============================================================ */
 table,
 [class*="table"] {
@@ -226,15 +230,15 @@ table {
 }
 table tr,
 [class*="table"] tr {
-  border-bottom: 1px solid var(--border) !important;
+  border-bottom: 1px solid #1f2430 !important;
 }
 table tr:hover,
 [class*="table"] tr:hover {
-  background-color: var(--muted) !important;
+  background-color: #14161d !important;
 }
 
 /* ============================================================
-   DOCK FLUTUANTE (barra inferior) — flat, azul no ativo
+   DOCK FLUTUANTE — preto, azul no ativo
    ============================================================ */
 .ios-tabbar {
   position: fixed;
@@ -247,10 +251,10 @@ table tr:hover,
   justify-content: space-around;
   height: 64px;
   padding: 5px 8px;
-  background-color: rgba(18, 21, 29, 0.95);
-  border: 1px solid var(--border-strong);
+  background-color: rgba(5, 5, 5, 0.95);
+  border: 1px solid #2b3140;
   border-radius: 24px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
 .ios-tab-item {
@@ -263,7 +267,7 @@ table tr:hover,
   min-width: 0;
   height: 54px;
   border-radius: 16px;
-  color: var(--color-muted-foreground);
+  color: #9aa3b5;
   font-size: 10px;
   font-weight: 500;
   text-decoration: none;
@@ -287,31 +291,22 @@ table tr:hover,
 }
 
 .ios-tab-item.active {
-  color: var(--primary);
+  color: #1e90ff;
 }
 
 .ios-tab-item.active .ios-tab-icon {
-  background-color: rgba(10, 132, 255, 0.18);
+  background-color: rgba(0, 123, 255, 0.18);
 }
 
 .ios-tab-item.active .ios-tab-label {
-  color: var(--primary);
+  color: #1e90ff;
   font-weight: 600;
 }
 
+/* Espaço extra embaixo para o dock NÃO cobrir os botões */
 @media (max-width: 767px) {
   .ios-tabbar-padding {
-    padding-bottom: 84px !important;
-  }
-}
-
-/* ============================================================
-   LATERAIS FIXAS — container centralizado no desktop
-   ============================================================ */
-@media (min-width: 1024px) {
-  .glass-shell {
-    max-width: 1280px;
-    margin: 0 auto;
+    padding-bottom: 120px !important;
   }
 }
 
@@ -345,112 +340,3 @@ table tr:hover,
 .card-animate { animation: fadeInUp 0.45s ease both; }
 .modal-animate { animation: scaleIn 0.25s ease both; }
 .toast-animate { animation: toastIn 0.28s ease both; }
-/* ============================================================
-   SIDEBAR — estilo referência (escura, cantos, item ativo claro)
-   ============================================================ */
-[class*="sidebar"] {
-  background-color: #0e1116 !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: none !important;
-}
-
-/* Logo branco no topo */
-[class*="sidebar"] a[href="/"] {
-  color: #ffffff !important;
-}
-[class*="sidebar"] a[href="/"] span {
-  color: #ffffff !important;
-}
-
-/* Itens do menu: texto claro, sem fundo por padrão */
-[class*="sidebar"] [class*="menu"] a {
-  color: rgba(255, 255, 255, 0.72) !important;
-  border-radius: 0.625rem !important;
-  transition: background 0.15s ease, color 0.15s ease !important;
-}
-[class*="sidebar"] [class*="menu"] a:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff !important;
-}
-
-/* Item ativo: fundo mais claro (destaque) */
-[class*="sidebar"] [data-active="true"],
-[class*="sidebar"] [aria-current="page"],
-[class*="sidebar"] a[class*="active"] {
-  background-color: rgba(255, 255, 255, 0.12) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-  border-left: none !important;
-}
-[class*="sidebar"] [data-active="true"] svg,
-[class*="sidebar"] [aria-current="page"] svg,
-[class*="sidebar"] a[class*="active"] svg {
-  color: #ffffff !important;
-}
-
-/* Rótulos de seção (uppercase, discreto) */
-[class*="sidebar"] [class*="group-label"] {
-  color: rgba(255, 255, 255, 0.4) !important;
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-}
-
-/* Setas dos menus recolhíveis */
-[class*="sidebar"] [class*="chevron"],
-[class*="sidebar"] [class*="caret"] {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-/* ============================================================
-   SIDEBAR — minimalista (estilo antigo)
-   Simples, flat, sem badges, sem uppercase forçado
-   ============================================================ */
-[class*="sidebar"] {
-  background-color: #0e1320 !important;
-  border-right: 1px solid #27314a !important;
-  box-shadow: none !important;
-}
-
-/* Itens: ícone + texto, sem fundo por padrão */
-[class*="sidebar"] [class*="menu"] a {
-  color: #a8b0c0 !important;
-  border-radius: 0.5rem !important;
-  transition: background 0.15s ease, color 0.15s ease !important;
-}
-[class*="sidebar"] [class*="menu"] a:hover {
-  background-color: #1c2436 !important;
-  color: #f4f6fb !important;
-}
-
-/* Item ativo: azul suave discreto */
-[class*="sidebar"] [data-active="true"],
-[class*="sidebar"] [aria-current="page"],
-[class*="sidebar"] a[class*="active"] {
-  background-color: rgba(10, 132, 255, 0.14) !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
-  border-left: none !important;
-}
-[class*="sidebar"] [data-active="true"] svg,
-[class*="sidebar"] [aria-current="page"] svg,
-[class*="sidebar"] a[class*="active"] svg {
-  color: #5ac8fa !important;
-}
-
-/* Rótulos de seção: simples, sem uppercase forçado */
-[class*="sidebar"] [class*="group-label"] {
-  color: #6e7aa0 !important;
-  font-size: 11px;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-/* Logo */
-[class*="sidebar"] a[href="/"] {
-  color: #f4f6fb !important;
-}
-[class*="sidebar"] a[href="/"] span {
-  color: #f4f6fb !important;
-}
