@@ -1,4 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="110" fill="#0071e3"/>
-  <text x="256" y="330" font-family="Arial, Helvetica, sans-serif" font-size="260" font-weight="bold" fill="#ffffff" text-anchor="middle">B</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <clipPath id="circleClip"><circle cx="100" cy="100" r="100"/></clipPath>
+  </defs>
+  <g clip-path="url(#circleClip)">
+    <rect x="0" y="0" width="200" height="200" fill="#2f7a4d"/>
+    <path d="M 200 -10 L 200 210 L 8 210 Q 42 172 58 145 Q 88 98 108 62 Q 128 30 116 -10 Z" fill="#2e3a72"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round">
+    <path d="M 97 52 Q 88 88 82 120" stroke-width="17"/>
+    <path d="M 82 120 Q 60 138 45 165" stroke-width="15"/>
+    <path d="M 85 122 Q 118 128 146 146" stroke-width="16"/>
+    <path d="M 92 58 Q 78 42 65 28" stroke-width="11"/>
+    <path d="M 96 58 Q 112 80 124 100" stroke-width="11"/>
+  </g>
+  <circle cx="82" cy="120" r="9" fill="#ffffff"/>
+  <circle cx="100" cy="38" r="13" fill="#ffffff"/>
+  <circle cx="42" cy="170" r="8" fill="#ffffff"/>
+  <circle cx="158" cy="148" r="13" fill="#ffffff"/>
 </svg>
