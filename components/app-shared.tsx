@@ -3,6 +3,7 @@ import {
 	LayoutDashboardIcon,
 	ClipboardCheckIcon,
 	CreditCardIcon,
+	TargetIcon,
 	TrophyIcon,
 	BarChart3Icon,
 	HistoryIcon,
@@ -26,6 +27,7 @@ export const navGroups: NavGroup[] = [
 		items: [
 			{ title: "Dashboard", url: "/", icon: LayoutDashboardIcon },
 			{ title: "Registro", url: "/registro", icon: ClipboardCheckIcon },
+			{ title: "Metas", url: "/metas", icon: TargetIcon },
 		],
 	},
 	{

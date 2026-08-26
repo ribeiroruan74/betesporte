@@ -31,17 +31,25 @@ export function MetasSemana({ influencers, registros }: { influencers: Influence
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setSoComPendencia((v) => !v)}
-          className={cn(
-            "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-            soComPendencia
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "border border-border text-muted-foreground hover:bg-muted"
-          )}
-        >
-          {soComPendencia ? "Mostrando só pendentes" : "Só com pendência"} ({totalPendentes})
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSoComPendencia((v) => !v)}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+              soComPendencia
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "border border-border text-muted-foreground hover:bg-muted"
+            )}
+          >
+            {soComPendencia ? "Mostrando só pendentes" : "Só com pendência"} ({totalPendentes})
+          </button>
+          <Link
+            href="/metas"
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+          >
+            Gerar mensagens →
+          </Link>
+        </div>
       </div>
 
       {comMeta.length === 0 ? (

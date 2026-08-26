@@ -72,6 +72,7 @@ export default function RegistroPage() {
   const [saving, setSaving] = useState(false);
   const [showSeletor, setShowSeletor] = useState(false);
   const [filaPendente, setFilaPendente] = useState<ItemFila[]>([]);
+  const [ultimoAtalho, setUltimoAtalho] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carrega o último índice salvo quando os influenciadores carregam
@@ -221,21 +222,34 @@ export default function RegistroPage() {
   const current = influencers[currentIndex];
   const isDone = currentIndex >= influencers.length;
 
-  // Atalhos de teclado: 1-4 pra cada status, 0 pra não postou, setas pra navegar
+  // Atalhos de teclado: 1-4 pra cada status, 0 pra não postou, setas pra navegar.
+  // Usa e.code (posição física da tecla) como principal, com e.key como
+  // fallback — em teclados com layout diferente do padrão US (ex.: ABNT2
+  // em certas configurações) e.key pode não bater com o dígito esperado.
   useEffect(() => {
+    const CODE_PARA_DIGITO: Record<string, string> = {
+      Digit0: "0", Digit1: "1", Digit2: "2", Digit3: "3", Digit4: "4",
+      Numpad0: "0", Numpad1: "1", Numpad2: "2", Numpad3: "3", Numpad4: "4",
+    };
+
     function onKeyDown(e: KeyboardEvent) {
       if (saving || showSeletor || isDone) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       const alvo = e.target as HTMLElement | null;
-      if (alvo && ["INPUT", "SELECT", "TEXTAREA"].includes(alvo.tagName)) return;
+      if (alvo && (["INPUT", "SELECT", "TEXTAREA"].includes(alvo.tagName) || alvo.isContentEditable)) return;
 
-      if (e.key >= "1" && e.key <= "4") {
-        const idx = parseInt(e.key, 10) - 1;
+      const digito = CODE_PARA_DIGITO[e.code] ?? (e.key >= "0" && e.key <= "9" ? e.key : null);
+
+      if (digito && digito >= "1" && digito <= "4") {
+        const idx = parseInt(digito, 10) - 1;
         if (STATUS_ORDEM[idx]) {
           e.preventDefault();
+          setUltimoAtalho(digito);
           toggleStatus(STATUS_ORDEM[idx]);
         }
-      } else if (e.key === "0") {
+      } else if (digito === "0") {
         e.preventDefault();
+        setUltimoAtalho("0");
         toggleStatus("nao-postou");
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -249,6 +263,13 @@ export default function RegistroPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saving, showSeletor, isDone, currentIndex, selected]);
+
+  // Feedback visual rápido de que uma tecla de atalho foi reconhecida
+  useEffect(() => {
+    if (!ultimoAtalho) return;
+    const t = setTimeout(() => setUltimoAtalho(null), 400);
+    return () => clearTimeout(t);
+  }, [ultimoAtalho]);
 
   if (loading) {
     return (
@@ -528,9 +549,14 @@ export default function RegistroPage() {
           </button>
         </div>
 
-        <p className="mt-3 hidden items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground sm:flex">
+        <p className="relative mt-3 hidden items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground sm:flex">
           <KeyboardIcon className="h-3 w-3" />
           Atalhos: 1-4 status · 0 não postou · ← anterior · → pular
+          {ultimoAtalho && (
+            <span className="atalho-flash absolute -top-9 left-1/2 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              {ultimoAtalho}
+            </span>
+          )}
         </p>
 
         {currentIndex > 0 && (

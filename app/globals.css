@@ -52,6 +52,15 @@
 
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
     "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: rgba(15, 23, 42, 0.1);
+  --glass-blob-1: rgba(0, 113, 227, 0.2);
+  --glass-blob-2: rgba(0, 113, 227, 0.13);
+  --glass-blob-3: rgba(48, 209, 88, 0.11);
 }
 
 /* .dark quando o usuário escolhe manualmente; a media query cobre "sistema" */
@@ -95,6 +104,15 @@
   --sidebar-accent-foreground: #4da3ff;
   --sidebar-border: #1f2430;
   --sidebar-ring: #0071e3;
+
+  --glass-bg: rgba(24, 27, 38, 0.45);
+  --glass-bg-strong: rgba(20, 22, 30, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.09);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+  --glass-blob-1: rgba(0, 113, 227, 0.32);
+  --glass-blob-2: rgba(0, 113, 227, 0.18);
+  --glass-blob-3: rgba(48, 209, 88, 0.14);
 }
 
 @theme inline {
@@ -159,13 +177,27 @@ body {
   max-width: 100%;
 }
 
+/* Manchas de luz fixas no fundo — dão profundidade pro blur do vidro líquido
+   ter algo pra desfocar, sem tirar o fundo preto/branco sólido da base. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(560px circle at 12% 15%, var(--glass-blob-1), transparent 60%),
+    radial-gradient(480px circle at 88% 8%, var(--glass-blob-2), transparent 55%),
+    radial-gradient(620px circle at 55% 100%, var(--glass-blob-3), transparent 60%);
+}
+
 .flex > *:not(.shrink-0),
 .grid > * {
   min-width: 0;
 }
 
 /* ============================================================
-   CARDS — flat, sem blur/sombra/gradiente
+   CARDS — vidro líquido: base flat + camadas translúcidas com blur
    ============================================================ */
 .glass-card,
 .glass-panel,
@@ -176,12 +208,60 @@ body {
   box-shadow: none;
   max-width: 100%;
   overflow-wrap: break-word;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* Cartão "de vidro" propriamente dito — translúcido + blur, usado onde o
+   efeito líquido deve aparecer com mais força (Metas, pop-ups, destaques). */
+.glass-card-soft {
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  max-width: 100%;
+  overflow-wrap: break-word;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+.glass-card-soft:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+  box-shadow: 0 12px 36px var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+}
+
+/* Brilho sutil que "escorre" pelo topo do card, reforçando a sensação de
+   vidro sem depender de imagens externas. */
+.glass-card-soft::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--glass-highlight) 0%, transparent 35%);
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .glass-header,
 header {
-  background-color: var(--color-background);
+  background-color: var(--glass-bg-strong);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Interações — leve elevação/realce ao passar o mouse ou tocar. */
+.glass-interactive {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+.glass-interactive:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+.glass-interactive:active {
+  transform: translateY(0) scale(0.99);
 }
 
 /* Muitas telas usam "bg-white/NN" como um card secundário (linhas de lista,
@@ -218,21 +298,35 @@ textarea:focus {
 }
 
 /* ============================================================
-   BOTÕES — azul vibrante, flat
+   BOTÕES — azul vibrante + toque de vidro líquido nas interações
    ============================================================ */
 button[class*="bg-primary"],
 a[class*="bg-primary"] {
   color: var(--color-primary-foreground);
   border: none;
-  box-shadow: none;
+  box-shadow: 0 4px 14px rgba(0, 113, 227, 0.28);
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease, filter 0.15s ease;
+}
+button[class*="bg-primary"]:hover,
+a[class*="bg-primary"]:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 20px rgba(0, 113, 227, 0.36);
+}
+button[class*="bg-primary"]:active,
+a[class*="bg-primary"]:active {
+  transform: scale(0.97);
 }
 button[class*="border"]:not([class*="bg-primary"]) {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
   color: var(--color-foreground);
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.15s ease, border-color 0.15s ease;
 }
 button[class*="border"]:not([class*="bg-primary"]):hover {
   background-color: var(--color-muted);
+}
+button[class*="border"]:not([class*="bg-primary"]):active {
+  transform: scale(0.97);
 }
 
 /* ============================================================
@@ -272,9 +366,12 @@ table tr:hover,
   justify-content: space-around;
   height: 64px;
   padding: 5px 8px;
-  background-color: var(--color-card);
-  border: 1px solid var(--color-border);
+  background-color: var(--glass-bg-strong);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
+  box-shadow: 0 8px 28px var(--glass-shadow);
 }
 
 .ios-tab-item {
@@ -381,3 +478,11 @@ table tr:hover,
 .card-animate { animation: fadeInUp 0.45s ease both; }
 .modal-animate { animation: scaleIn 0.25s ease both; }
 .toast-animate { animation: toastIn 0.22s ease both; }
+
+@keyframes atalhoFlash {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.7); }
+  25% { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+  70% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -6px) scale(0.9); }
+}
+.atalho-flash { animation: atalhoFlash 0.4s ease both; }
