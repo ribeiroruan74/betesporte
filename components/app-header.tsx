@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,10 @@ import { useInfluencers } from "@/lib/use-influencers";
 import { useBancoDados } from "@/lib/use-banco-dados";
 import { useLinhasMetaSemana } from "@/lib/use-metas-semana";
 import { contaComoPostou, normalizaTexto } from "@/lib/influencers";
-import { SearchIcon, BellIcon, HeadsetIcon, XIcon, UserRoundIcon, AlertCircleIcon, TargetIcon } from "lucide-react";
+import { useToast } from "@/components/toast";
+import { SearchIcon, BellIcon, HeadsetIcon, XIcon, UserRoundIcon, AlertCircleIcon, TargetIcon, FlameIcon } from "lucide-react";
+
+const ALERTA_QUASE_LA_KEY = "betesporte_alerta_quase_la";
 
 export function AppHeader() {
   const router = useRouter();
@@ -29,6 +32,7 @@ export function AppHeader() {
   const { influencers } = useInfluencers();
   const { registros } = useBancoDados();
   const { linhas: metas } = useLinhasMetaSemana(influencers, registros);
+  const { mostrar } = useToast();
 
   const resultados = useMemo(() => {
     const t = normalizaTexto(termo);
@@ -40,8 +44,34 @@ export function AppHeader() {
 
   const inadimplentes = influencers.filter((i) => !contaComoPostou(i.status || ""));
   const metasPendentes = metas.filter((m) => m.temMeta && m.faltamTotal > 0);
+  const quaseLa = metasPendentes.filter((m) => m.faltamTotal === 1);
   const metasBatidas = metas.filter((m) => m.cumpriu);
   const semNotificacoes = inadimplentes.length === 0 && metasPendentes.length === 0;
+
+  useEffect(() => {
+    if (quaseLa.length === 0) return;
+    const hoje = new Date().toISOString().slice(0, 10);
+    const chave = `${hoje}:${quaseLa.map((m) => m.nome).sort().join(",")}`;
+    let jaMostrado: string | null = null;
+    try {
+      jaMostrado = sessionStorage.getItem(ALERTA_QUASE_LA_KEY);
+    } catch {
+      // sessionStorage indisponível — mostra mesmo assim
+    }
+    if (jaMostrado === chave) return;
+    try {
+      sessionStorage.setItem(ALERTA_QUASE_LA_KEY, chave);
+    } catch {
+      // ignora
+    }
+    const nomes = quaseLa.slice(0, 3).map((m) => m.nome).join(", ");
+    mostrar({
+      titulo: `🔥 ${quaseLa.length} quase batendo a meta`,
+      descricao: `${nomes}${quaseLa.length > 3 ? ` +${quaseLa.length - 3} outro(s)` : ""} — falta só 1 postagem`,
+      tipo: "info",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quaseLa.length]);
 
   function irPara(nome: string) {
     setBuscaAberta(false);
@@ -154,13 +184,35 @@ export function AppHeader() {
                       </a>
                     </div>
                   )}
+                  {quaseLa.length > 0 && (
+                    <div className="border-t border-border pt-3">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-[#FF9500]">
+                        <FlameIcon className="h-3.5 w-3.5" />
+                        {quaseLa.length} quase batendo a meta (falta 1 postagem)
+                      </div>
+                      <ul className="mt-1.5 flex flex-col gap-1">
+                        {quaseLa.slice(0, 4).map((m) => (
+                          <li key={m.nome} className="truncate text-xs text-muted-foreground">
+                            <UserRoundIcon className="mr-1 inline h-3 w-3" />
+                            {m.nome} — falta {m.faltamStories > 0 ? "1 story" : "1 feed/reels"}
+                          </li>
+                        ))}
+                        {quaseLa.length > 4 && (
+                          <li className="text-xs text-muted-foreground">+{quaseLa.length - 4} outros</li>
+                        )}
+                      </ul>
+                      <a href="/metas" className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
+                        Ver na aba Metas →
+                      </a>
+                    </div>
+                  )}
                   {metasPendentes.length > 0 && (
                     <div className="border-t border-border pt-3">
                       <div className="flex items-center gap-1.5 text-xs font-medium text-[#FF9500]">
                         <TargetIcon className="h-3.5 w-3.5" />
                         {metasPendentes.length} com pendência na meta semanal
                       </div>
-                      <a href="/" className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
+                      <a href="/metas" className="mt-1.5 inline-block text-xs font-medium text-primary hover:underline">
                         Ver Metas da semana →
                       </a>
                     </div>
