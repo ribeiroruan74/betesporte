@@ -11,7 +11,7 @@ import {
   CalendarRangeIcon,
   RotateCcwIcon,
 } from "lucide-react";
-import { STATUS_CONFIG, contaComoPostou, parseFormatos } from "@/lib/influencers";
+import { contaComoPostou, parseFormatos } from "@/lib/influencers";
 import { useMetas } from "@/lib/use-metas";
 import type { MetaSemanal } from "@/lib/metas";
 import { useFinanceiro } from "@/lib/use-financeiro";
@@ -20,12 +20,6 @@ import { cn } from "@/lib/utils";
 
 function formatarBRL(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function statusLabel(status: string) {
-  const formatos = parseFormatos(status).filter((f) => f !== "nao-postou");
-  if (formatos.length === 0) return "Não Postou";
-  return formatos.map((f) => STATUS_CONFIG[f].label).join(" + ");
 }
 
 function isoParaBR(iso: string) {
@@ -129,7 +123,6 @@ function metaProporcional(meta: MetaSemanal, diasNoPeriodo: number) {
 }
 
 function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, meta: MetaSemanal, valorPorEntrega: number): string {
-  const linhas = a.dias.map((d, i) => `${i + 1}. ${d.postou ? "✅" : "❌"} ${d.br} — ${statusLabel(d.status)}`);
   const temMeta = meta.storiesSemana > 0 || meta.feedSemana > 0;
   const { storiesMeta, feedMeta } = metaProporcional(meta, a.dias.length);
 
@@ -158,8 +151,6 @@ function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, met
     ...blocoMeta,
     ...blocoValor,
     "━━━━━━━━━━━━━━━━━━━━",
-    "*Status por dia:*",
-    ...linhas,
     "Qualquer dúvida, me avise. Obrigado! 🙏",
   ].join("\n");
 }
