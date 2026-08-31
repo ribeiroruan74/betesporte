@@ -122,19 +122,7 @@ function metaProporcional(meta: MetaSemanal, diasNoPeriodo: number) {
   };
 }
 
-function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, meta: MetaSemanal, valorPorEntrega: number): string {
-  const temMeta = meta.storiesSemana > 0 || meta.feedSemana > 0;
-  const { storiesMeta, feedMeta } = metaProporcional(meta, a.dias.length);
-
-  const blocoMeta = temMeta
-    ? [
-        "━━━━━━━━━━━━━━━━━━━━",
-        "*Meta do período:*",
-        `📱 Stories: ${a.storiesEntregues}/${storiesMeta}`,
-        `🎬 Feed/Reels: ${a.feedEntregues}/${feedMeta}`,
-      ]
-    : [];
-
+function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, valorPorEntrega: number): string {
   const blocoValor =
     valorPorEntrega > 0
       ? ["━━━━━━━━━━━━━━━━━━━━", `💰 *Valor a receber:* ${formatarBRL(a.entregas * valorPorEntrega)} (${a.entregas} × ${formatarBRL(valorPorEntrega)})`]
@@ -148,7 +136,6 @@ function gerarMensagem(a: AnaliseInfluenciador, deBR: string, ateBR: string, met
     "━━━━━━━━━━━━━━━━━━━━",
     `✅ *Entregas confirmadas:* ${a.entregas}`,
     `❌ *Dias sem postar:* ${a.diasSem}`,
-    ...blocoMeta,
     ...blocoValor,
     "━━━━━━━━━━━━━━━━━━━━",
     "Qualquer dúvida, me avise. Obrigado! 🙏",
@@ -223,7 +210,7 @@ export default function CobrancaPage() {
   const ateBR = isoParaBR(ate);
 
   const mensagem = atual
-    ? gerarMensagem(atual, deBR, ateBR, obterMeta(atual.inf.name), obterFinanceiro(atual.inf.name).valorPorEntrega)
+    ? gerarMensagem(atual, deBR, ateBR, obterFinanceiro(atual.inf.name).valorPorEntrega)
     : "";
   const whatsappLink = atual
     ? `https://wa.me/?text=${encodeURIComponent(mensagem)}`
