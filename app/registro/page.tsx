@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { useInfluencers } from "@/lib/use-influencers";
+import { useBancoDados } from "@/lib/use-banco-dados";
 import { STATUS_CONFIG, parseFormatos, type StatusType } from "@/lib/influencers";
 import { useFotos } from "@/lib/use-fotos";
 import { InfluencerAvatar } from "@/components/influencer-avatar";
 import { useToast } from "@/components/toast";
-import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon, WifiOffIcon, KeyboardIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, CheckIcon, RotateCcwIcon, UserRoundIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, WifiOffIcon, KeyboardIcon } from "lucide-react";
 
 const STORAGE_KEY = "betesporte_registro_indice";
 const FILA_KEY = "betesporte_registro_fila";
@@ -15,14 +16,31 @@ interface ItemFila {
   name: string;
   status: string;
   timestamp: number;
+  data?: string; // dd/mm/aaaa — presente só quando não é o registro de hoje
 }
 
-function hojeFormatado() {
-  return new Date().toLocaleDateString("pt-BR", {
+// "Hoje" no fuso do Brasil (mesmo critério do backend), formato aaaa-mm-dd
+function hojeISO() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+}
+
+function isoParaBR(iso: string) {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+function formatarDataExibicao(iso: string) {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long",
   });
+}
+
+function somarDias(iso: string, dias: number) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(d);
 }
 
 function lerFila(): ItemFila[] {
@@ -64,16 +82,38 @@ const STATUS_ORDEM = (Object.keys(STATUS_CONFIG) as StatusType[]).filter((s) => 
 
 export default function RegistroPage() {
   const { influencers, loading } = useInfluencers();
+  const { registros } = useBancoDados();
   const { obterFoto } = useFotos();
   const { mostrar } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
+  // Chave: "aaaa-mm-dd::Nome" — statuses guarda o que foi salvo nesta sessão,
+  // por data, pra permitir editar tanto hoje quanto dias anteriores.
   const [statuses, setStatuses] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<StatusType[]>([]);
   const [saving, setSaving] = useState(false);
   const [showSeletor, setShowSeletor] = useState(false);
   const [filaPendente, setFilaPendente] = useState<ItemFila[]>([]);
   const [ultimoAtalho, setUltimoAtalho] = useState<string | null>(null);
+  const [dataSelecionada, setDataSelecionada] = useState(hojeISO());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const estaEditandoPassado = dataSelecionada !== hojeISO();
+
+  function statusRawPara(nome: string, dataISO: string): string {
+    const chave = `${dataISO}::${nome}`;
+    if (chave in statuses) return statuses[chave];
+    if (dataISO === hojeISO()) {
+      return influencers.find((i) => i.name === nome)?.status ?? "";
+    }
+    const dataBR = isoParaBR(dataISO);
+    return registros.find((r) => r.nome === nome && r.data === dataBR)?.status ?? "";
+  }
+
+  function mudarData(novaISO: string) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setSelected([]);
+    setDataSelecionada(novaISO);
+  }
 
   // Carrega o último índice salvo quando os influenciadores carregam
   useEffect(() => {
@@ -109,7 +149,7 @@ export default function RegistroPage() {
         const res = await fetch("/api/registro", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: item.name, status: item.status }),
+          body: JSON.stringify({ name: item.name, status: item.status, ...(item.data ? { date: item.data } : {}) }),
         });
         if (res.ok) enviados++;
         else restantes.push(item);
@@ -134,25 +174,29 @@ export default function RegistroPage() {
     return selected.map((s) => STATUS_CONFIG[s].label).join(" / ");
   }
 
-  // Salva o status de um influenciador (usado tanto no fluxo principal
-  // quanto na revisão rápida do fim do dia). Se estiver offline, guarda
-  // numa fila local e sincroniza quando a conexão voltar.
-  async function persistirStatus(nome: string, sel: StatusType[]) {
+  // Salva o status de um influenciador numa data específica (usado no fluxo
+  // principal, na revisão rápida do fim do dia e na edição de dias
+  // anteriores). Se estiver offline, guarda numa fila local e sincroniza
+  // quando a conexão voltar.
+  async function persistirStatus(nome: string, sel: StatusType[], dataISO: string = dataSelecionada) {
     if (sel.length === 0) return;
     const combined = sel.map((s) => STATUS_CONFIG[s].label).join(" / ");
+    const chave = `${dataISO}::${nome}`;
+    const ehHoje = dataISO === hojeISO();
+    const dataBR = ehHoje ? undefined : isoParaBR(dataISO);
     try {
       const res = await fetch("/api/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: nome, status: combined }),
+        body: JSON.stringify({ name: nome, status: combined, ...(dataBR ? { date: dataBR } : {}) }),
       });
       if (!res.ok) throw new Error("Falha ao salvar");
-      setStatuses((prev) => ({ ...prev, [nome]: combined }));
+      setStatuses((prev) => ({ ...prev, [chave]: combined }));
     } catch {
-      const fila = [...lerFila(), { name: nome, status: combined, timestamp: Date.now() }];
+      const fila = [...lerFila(), { name: nome, status: combined, timestamp: Date.now(), ...(dataBR ? { data: dataBR } : {}) }];
       salvarFila(fila);
       setFilaPendente(fila);
-      setStatuses((prev) => ({ ...prev, [nome]: combined }));
+      setStatuses((prev) => ({ ...prev, [chave]: combined }));
       mostrar({ titulo: "Sem conexão", descricao: "Guardado localmente — sincroniza quando a internet voltar", tipo: "info" });
     }
   }
@@ -287,16 +331,19 @@ export default function RegistroPage() {
     );
   }
 
-  const postedCount = Object.keys(statuses).length;
+  const postedCount = influencers.filter((inf) => parseFormatos(statusRawPara(inf.name, dataSelecionada)).length > 0).length;
 
   if (isDone) {
     return (
       <AppShell>
         <div className="glass-card card-animate mt-6 rounded-2xl p-6 text-center">
           <p className="text-4xl">🎉</p>
-          <h1 className="mt-3 text-2xl font-bold text-foreground">Dia finalizado!</h1>
+          <h1 className="mt-3 text-2xl font-bold text-foreground">
+            {estaEditandoPassado ? "Revisão concluída!" : "Dia finalizado!"}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {postedCount} de {influencers.length} influenciadores registrados. Revise ou corrija abaixo se precisar.
+            {postedCount} de {influencers.length} influenciadores registrados em{" "}
+            <span className="capitalize">{formatarDataExibicao(dataSelecionada)}</span>. Revise ou corrija abaixo se precisar.
           </p>
           <button
             onClick={comecarDoInicio}
@@ -309,10 +356,12 @@ export default function RegistroPage() {
 
         {/* Revisão rápida — editável na hora */}
         <div className="glass-card card-animate mt-4 rounded-2xl p-4">
-          <h2 className="px-2 text-sm font-semibold text-foreground">Revisão de hoje</h2>
+          <h2 className="px-2 text-sm font-semibold text-foreground capitalize">
+            Revisão de {estaEditandoPassado ? formatarDataExibicao(dataSelecionada) : "hoje"}
+          </h2>
           <div className="mt-2 flex flex-col gap-2">
             {influencers.map((inf) => {
-              const raw = statuses[inf.name] ?? inf.status ?? "";
+              const raw = statusRawPara(inf.name, dataSelecionada);
               const formatos = parseFormatos(raw);
               return (
                 <div key={inf.id} className="rounded-xl bg-white/60 p-3">
@@ -362,11 +411,12 @@ export default function RegistroPage() {
     );
   }
 
-  // Status já salvo hoje: prioriza o que acabou de ser salvo nesta sessão,
-  // senão usa o que já estava na planilha para hoje (current.status)
-  const statusHojeRaw = statuses[current.name] ?? current.status ?? "";
+  // Status já salvo na data selecionada: prioriza o que acabou de ser salvo
+  // nesta sessão, senão usa o que já estava na planilha (hoje) ou no banco
+  // de dados histórico (data anterior)
+  const statusHojeRaw = statusRawPara(current.name, dataSelecionada);
   const statusHojeFormatos = parseFormatos(statusHojeRaw);
-  const registradoNestaSessao = current.name in statuses;
+  const registradoNestaSessao = `${dataSelecionada}::${current.name}` in statuses;
 
   // Abre o Instagram: usa o link da coluna C se existir; senão monta a partir do @username
   const instagramUrl = current.link
@@ -381,9 +431,6 @@ export default function RegistroPage() {
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Registro</h1>
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-            <CalendarDaysIcon className="h-3.5 w-3.5 shrink-0" />
-            <span className="capitalize">{hojeFormatado()}</span>
-            <span className="text-border">·</span>
             {currentIndex + 1} / {influencers.length} · {postedCount} registrados
           </p>
         </div>
@@ -395,7 +442,55 @@ export default function RegistroPage() {
         )}
       </div>
 
-      <div className="glass-card card-animate mt-6 rounded-2xl p-6">
+      {/* Seletor de data: por padrão é hoje, mas dá pra voltar num dia
+          anterior pra corrigir/editar o status de alguém */}
+      <div className="glass-card card-animate mt-4 flex items-center gap-2 rounded-2xl p-3">
+        <button
+          onClick={() => mudarData(somarDias(dataSelecionada, -1))}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-muted"
+          aria-label="Dia anterior"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+        <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-white/70 px-3 py-2">
+          <CalendarDaysIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <input
+            type="date"
+            value={dataSelecionada}
+            max={hojeISO()}
+            onChange={(e) => e.target.value && mudarData(e.target.value)}
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-foreground outline-none"
+          />
+          <span className="hidden shrink-0 truncate text-xs capitalize text-muted-foreground sm:block">
+            {formatarDataExibicao(dataSelecionada)}
+          </span>
+        </div>
+        <button
+          onClick={() => mudarData(somarDias(dataSelecionada, 1))}
+          disabled={dataSelecionada >= hojeISO()}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          aria-label="Próximo dia"
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+        {estaEditandoPassado && (
+          <button
+            onClick={() => mudarData(hojeISO())}
+            className="shrink-0 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition hover:bg-primary/20"
+          >
+            Hoje
+          </button>
+        )}
+      </div>
+
+      {estaEditandoPassado && (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-[#FF9500]">
+          <RotateCcwIcon className="h-3.5 w-3.5" />
+          Editando um dia anterior — as alterações vão direto pro histórico dessa data.
+        </p>
+      )}
+
+      <div className="glass-card card-animate mt-4 rounded-2xl p-6">
         {/* Botão/select: ir para um influenciador específico */}
         <div className="mb-4">
           {!showSeletor ? (
@@ -422,7 +517,7 @@ export default function RegistroPage() {
                 className="w-full rounded-xl border border-border bg-white/70 px-3 py-2.5 text-sm outline-none focus:border-primary"
               >
                 {influencers.map((inf, idx) => {
-                  const jaTemStatus = (statuses[inf.name] ?? inf.status ?? "") !== "" && parseFormatos(statuses[inf.name] ?? inf.status ?? "").length > 0;
+                  const jaTemStatus = parseFormatos(statusRawPara(inf.name, dataSelecionada)).length > 0;
                   return (
                     <option key={inf.id ?? idx} value={idx}>
                       {jaTemStatus ? "✓" : "○"} {idx + 1}. {inf.name} {inf.username ? `(${inf.username})` : ""}
@@ -449,10 +544,10 @@ export default function RegistroPage() {
           </div>
         </div>
 
-        {/* Status já registrado hoje — pra não confundir se já passou por aqui */}
+        {/* Status já registrado na data selecionada — pra não confundir se já passou por aqui */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/50 px-3 py-2.5">
           <span className="text-xs font-medium text-muted-foreground">
-            {registradoNestaSessao ? "Você acabou de registrar:" : "Status de hoje:"}
+            {registradoNestaSessao ? "Você acabou de registrar:" : estaEditandoPassado ? "Status nesse dia:" : "Status de hoje:"}
           </span>
           {statusHojeFormatos.length === 0 ? (
             <span className="rounded-full bg-background px-2.5 py-0.5 text-xs font-medium text-muted-foreground">

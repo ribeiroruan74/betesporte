@@ -13,32 +13,35 @@ function hojeSP() {
   }).format(new Date());
 }
 
-// Retorna os componentes (dia, mes, ano) de hoje no fuso do Brasil
-function hojeComponentes() {
-  const p = hojeSP().split("/");
+// Extrai { dia, mes, ano } de uma célula de data ou de uma string dd/mm/aaaa
+function componentesDe(valor: string) {
+  const p = valor.split("/");
   return { dia: parseInt(p[0]), mes: parseInt(p[1]), ano: parseInt(p[2]) };
 }
 
-function sameDate(cell: unknown) {
+function sameDate(cell: unknown, alvo: { dia: number; mes: number; ano: number }) {
   if (!cell) return false;
   const s = String(cell).trim();
   if (!s.includes("/")) return false;
-  const p = s.split("/");
-  const dia = parseInt(p[0]);
-  const mes = parseInt(p[1]);
-  const ano = parseInt(p[2]);
-  const h = hojeComponentes();
-  return dia === h.dia && mes === h.mes && (ano === h.ano || ano === h.ano % 100);
+  const { dia, mes, ano } = componentesDe(s);
+  return dia === alvo.dia && mes === alvo.mes && (ano === alvo.ano || ano === alvo.ano % 100);
 }
 
 export async function POST(req: Request) {
   try {
-    const { name, status } = await req.json();
+    const { name, status, date } = await req.json();
     if (!name || !status) {
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
     }
+    // `date` (opcional, formato dd/mm/aaaa) permite editar/corrigir um dia
+    // anterior em vez de sempre gravar em "hoje".
+    const dataAlvo: string = typeof date === "string" && date.trim() ? date.trim() : hojeSP();
+    const componentesAlvo = componentesDe(dataAlvo);
 
-    // ===== 1. Lê ACOMPANHAMENTO para achar coluna de hoje e o @username =====
+    // ===== 1. Lê ACOMPANHAMENTO para achar a coluna da data alvo e o @username =====
+    // ACOMPANHAMENTO normalmente só tem colunas dos dias recentes/atuais — se
+    // a data pedida não estiver lá, statusCol fica -1 e esse passo é pulado
+    // (a atualização acontece só no BANCO_DE_DADOS, que é o histórico completo).
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "ACOMPANHAMENTO!A1:Z100",
@@ -50,7 +53,7 @@ export async function POST(req: Request) {
     let dataRow = 1;
     for (let r = 0; r <= 1; r++) {
       for (let c = 0; c < (rows[r] || []).length; c++) {
-        if (sameDate(rows[r][c])) { statusCol = c; dataRow = r; break; }
+        if (sameDate(rows[r][c], componentesAlvo)) { statusCol = c; dataRow = r; break; }
       }
       if (statusCol >= 0) break;
     }
@@ -76,8 +79,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ===== 3. Salva/atualiza no BANCO_DE_DADOS (com a data correta do Brasil) =====
-    const hoje = hojeSP();
+    // ===== 3. Salva/atualiza no BANCO_DE_DADOS (na data alvo) =====
     const bancoRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "BANCO_DE_DADOS!A1:D2000",
@@ -106,7 +108,7 @@ export async function POST(req: Request) {
       const row = bancoRows[r] || [];
       const d = String(row[colData] || "").trim();
       const n = String(row[colNome] || "").trim();
-      if (d === hoje && n === name) { existingRow = r; break; }
+      if (d === dataAlvo && n === name) { existingRow = r; break; }
     }
 
     if (existingRow >= 0) {
@@ -121,7 +123,7 @@ export async function POST(req: Request) {
       const maxCol = Math.max(colData, colNome, colUser, colStatus);
       const values: string[] = [];
       for (let i = 0; i <= maxCol; i++) values.push("");
-      values[colData] = hoje;
+      values[colData] = dataAlvo;
       values[colNome] = name;
       values[colUser] = username;
       values[colStatus] = status;
