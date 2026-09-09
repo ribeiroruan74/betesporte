@@ -95,6 +95,11 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log("[DIAG-registro] alvo:", { name, dataAlvo, componentesAlvo });
+    console.log("[DIAG-registro] ACOMPANHAMENTO linha0 (raw):", JSON.stringify(rows[0]));
+    console.log("[DIAG-registro] ACOMPANHAMENTO linha1 (raw):", JSON.stringify(rows[1]));
+    console.log("[DIAG-registro] ACOMPANHAMENTO statusCol:", statusCol, "dataRow:", dataRow, "rowIndex:", rowIndex);
+
     // ===== 2. Salva no ACOMPANHAMENTO (coluna de hoje) =====
     if (statusCol >= 0 && rowIndex >= 0) {
       const colLetter = String.fromCharCode(65 + statusCol);
@@ -136,6 +141,19 @@ export async function POST(req: Request) {
       const n = String(row[colNome] || "").trim();
       if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; break; }
     }
+
+    console.log("[DIAG-registro] BANCO_DE_DADOS header (raw):", JSON.stringify(bancoRows[headerRow]));
+    console.log("[DIAG-registro] BANCO_DE_DADOS cols:", { headerRow, colData, colNome, colUser, colStatus });
+    console.log(
+      "[DIAG-registro] BANCO_DE_DADOS linhas do influenciador (raw data cell + tipo):",
+      JSON.stringify(
+        bancoRows
+          .slice(headerRow + 1)
+          .filter((r) => String(r[colNome] || "").trim() === name)
+          .map((r) => ({ dataCell: r[colData], tipo: typeof r[colData], status: r[colStatus] }))
+      )
+    );
+    console.log("[DIAG-registro] BANCO_DE_DADOS existingRow:", existingRow);
 
     if (existingRow >= 0) {
       const colLetter = String.fromCharCode(65 + colStatus);

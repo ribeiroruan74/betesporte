@@ -54,6 +54,18 @@ export async function GET() {
       if (sameDate(rows[headerRow][c], today)) { statusCol = c; break; }
     }
 
+    console.log("[DIAG-influencers] hoje (server, UTC):", today.toISOString());
+    console.log("[DIAG-influencers] ACOMPANHAMENTO headerRow:", headerRow, "linha do cabeçalho (raw):", JSON.stringify(rows[headerRow]));
+    console.log("[DIAG-influencers] statusCol encontrado:", statusCol);
+    if (rows[headerRow + 1]) {
+      console.log(
+        "[DIAG-influencers] primeira linha de influenciador (raw):",
+        JSON.stringify(rows[headerRow + 1]),
+        "célula na statusCol:",
+        statusCol >= 0 ? rows[headerRow + 1][statusCol] : "(statusCol=-1)"
+      );
+    }
+
     // Lista todos os influenciadores (nome na col A, username na col B)
     const influencers = rows
       .slice(headerRow + 1)
