@@ -13,18 +13,45 @@ function hojeSP() {
   }).format(new Date());
 }
 
-// Extrai { dia, mes, ano } de uma célula de data ou de uma string dd/mm/aaaa
-function componentesDe(valor: string) {
+type Componentes = { dia: number; mes: number; ano: number };
+
+// Extrai { dia, mes, ano } de uma string dd/mm/aaaa (formato que sempre
+// vem do cliente, nunca é célula de planilha)
+function componentesDe(valor: string): Componentes {
   const p = valor.split("/");
   return { dia: parseInt(p[0]), mes: parseInt(p[1]), ano: parseInt(p[2]) };
 }
 
-function sameDate(cell: unknown, alvo: { dia: number; mes: number; ano: number }) {
-  if (!cell) return false;
+// Extrai { dia, mes, ano } de uma CÉLULA de planilha, que pode vir como
+// texto "dd/mm/aaaa" OU como número serial de data do Google Sheets — com
+// valueRenderOption "UNFORMATTED_VALUE", uma célula digitada como data
+// (via USER_ENTERED, como o próprio /api/registro grava) é convertida pelo
+// Sheets num número de dias desde 30/12/1899, não fica como texto. Sem
+// tratar esse caso, a comparação de datas abaixo nunca bate e cada edição
+// de um dia já registrado vira uma linha nova em vez de atualizar a linha
+// existente — este é o bug relatado ("cria outro status" ao editar).
+function componentesDaCelula(cell: unknown): Componentes | null {
+  if (cell === null || cell === undefined || cell === "") return null;
+  if (typeof cell === "number") {
+    const EPOCH_SHEETS = Date.UTC(1899, 11, 30);
+    const d = new Date(EPOCH_SHEETS + cell * 86400000);
+    return { dia: d.getUTCDate(), mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
+  }
   const s = String(cell).trim();
-  if (!s.includes("/")) return false;
-  const { dia, mes, ano } = componentesDe(s);
-  return dia === alvo.dia && mes === alvo.mes && (ano === alvo.ano || ano === alvo.ano % 100);
+  if (!s.includes("/")) return null;
+  const p = s.split("/");
+  if (p.length !== 3) return null;
+  const dia = parseInt(p[0], 10);
+  const mes = parseInt(p[1], 10);
+  const ano = parseInt(p[2], 10);
+  if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return null;
+  return { dia, mes, ano };
+}
+
+function mesmaData(cell: unknown, alvo: Componentes) {
+  const c = componentesDaCelula(cell);
+  if (!c) return false;
+  return c.dia === alvo.dia && c.mes === alvo.mes && (c.ano === alvo.ano || c.ano === alvo.ano % 100);
 }
 
 export async function POST(req: Request) {
@@ -53,7 +80,7 @@ export async function POST(req: Request) {
     let dataRow = 1;
     for (let r = 0; r <= 1; r++) {
       for (let c = 0; c < (rows[r] || []).length; c++) {
-        if (sameDate(rows[r][c], componentesAlvo)) { statusCol = c; dataRow = r; break; }
+        if (mesmaData(rows[r][c], componentesAlvo)) { statusCol = c; dataRow = r; break; }
       }
       if (statusCol >= 0) break;
     }
@@ -106,9 +133,8 @@ export async function POST(req: Request) {
     let existingRow = -1;
     for (let r = headerRow + 1; r < bancoRows.length; r++) {
       const row = bancoRows[r] || [];
-      const d = String(row[colData] || "").trim();
       const n = String(row[colNome] || "").trim();
-      if (d === dataAlvo && n === name) { existingRow = r; break; }
+      if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; break; }
     }
 
     if (existingRow >= 0) {
