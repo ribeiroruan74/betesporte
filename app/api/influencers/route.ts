@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sheets, SPREADSHEET_ID } from "@/lib/sheets";
+import { hojeSP, componentesDe, mesmaData, acharColunasBanco } from "@/lib/sheet-dates";
 
 function normalizeStatus(raw: string): string {
   const s = (raw || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -9,22 +10,6 @@ function normalizeStatus(raw: string): string {
   if (s.includes("feedreels") || s.includes("reels")) return "feed-reels";
   if (s.includes("naopostou")) return "nao-postou";
   return "";
-}
-
-function sameDate(cell: unknown, target: Date): boolean {
-  if (cell instanceof Date) {
-    return cell.getDate() === target.getDate() && cell.getMonth() === target.getMonth() && cell.getFullYear() === target.getFullYear();
-  }
-  if (typeof cell === "number") {
-    const d = new Date(1899, 11, 30 + Math.round(cell));
-    return d.getDate() === target.getDate() && d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear();
-  }
-  const digits = String(cell || "").match(/\d+/g)?.map(Number) || [];
-  if (digits.length < 3) return false;
-  let [a, b, c] = digits.slice(-3);
-  if (digits[0] > 1000) { a = digits[2]; b = digits[1]; c = digits[0]; }
-  if (c < 100) c += 2000;
-  return a === target.getDate() && b === target.getMonth() + 1 && c === target.getFullYear();
 }
 
 export async function GET() {
@@ -47,36 +32,43 @@ export async function GET() {
       }
     }
 
-    // Acha a coluna da data de hoje (na linha do cabeçalho)
-    const today = new Date();
-    let statusCol = -1;
-    for (let c = 0; c < (rows[headerRow] || []).length; c++) {
-      if (sameDate(rows[headerRow][c], today)) { statusCol = c; break; }
-    }
+    // O status de "hoje" vem do BANCO_DE_DADOS (fonte de verdade, sempre
+    // atualizada por /api/registro) em vez da coluna "atual" de
+    // ACOMPANHAMENTO — essa coluna é mantida manualmente fora deste app e
+    // frequentemente fica desatualizada, o que fazia todo mundo aparecer
+    // como "ainda não registrado" mesmo já tendo status salvo hoje.
+    const hoje = hojeSP();
+    const componentesHoje = componentesDe(hoje);
+    const bancoRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "BANCO_DE_DADOS!A1:D2000",
+      valueRenderOption: "UNFORMATTED_VALUE",
+    });
+    const bancoRows = bancoRes.data.values || [];
+    const { headerRow: bancoHeaderRow, colData, colNome, colStatus } = acharColunasBanco(bancoRows);
 
-    console.log("[DIAG-influencers] hoje (server, UTC):", today.toISOString());
-    console.log("[DIAG-influencers] ACOMPANHAMENTO headerRow:", headerRow, "linha do cabeçalho (raw):", JSON.stringify(rows[headerRow]));
-    console.log("[DIAG-influencers] statusCol encontrado:", statusCol);
-    if (rows[headerRow + 1]) {
-      console.log(
-        "[DIAG-influencers] primeira linha de influenciador (raw):",
-        JSON.stringify(rows[headerRow + 1]),
-        "célula na statusCol:",
-        statusCol >= 0 ? rows[headerRow + 1][statusCol] : "(statusCol=-1)"
-      );
+    const statusHojePorNome = new Map<string, string>();
+    for (let r = bancoHeaderRow + 1; r < bancoRows.length; r++) {
+      const row = bancoRows[r] || [];
+      if (!mesmaData(row[colData], componentesHoje)) continue;
+      const nome = String(row[colNome] || "").trim();
+      if (nome) statusHojePorNome.set(nome, String(row[colStatus] || ""));
     }
 
     // Lista todos os influenciadores (nome na col A, username na col B)
     const influencers = rows
       .slice(headerRow + 1)
       .filter((row) => row[0] && row[0].toString().trim() !== "")
-      .map((row, i) => ({
-        id: i + 1,
-        name: row[0]?.toString().trim() || "",
-        username: row[1]?.toString().trim() || "",
-        link: row[2]?.toString().trim() || "",
-        status: statusCol >= 0 ? normalizeStatus(String(row[statusCol] ?? "")) : "",
-      }));
+      .map((row, i) => {
+        const name = row[0]?.toString().trim() || "";
+        return {
+          id: i + 1,
+          name,
+          username: row[1]?.toString().trim() || "",
+          link: row[2]?.toString().trim() || "",
+          status: statusHojePorNome.has(name) ? normalizeStatus(statusHojePorNome.get(name)!) : "",
+        };
+      });
 
     return NextResponse.json({ influencers });
   } catch (error) {

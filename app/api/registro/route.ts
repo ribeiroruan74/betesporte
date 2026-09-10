@@ -1,58 +1,6 @@
 import { NextResponse } from "next/server";
 import { sheets, SPREADSHEET_ID } from "@/lib/sheets";
-
-const FUSO = "America/Sao_Paulo";
-
-// Retorna a data de hoje no fuso do Brasil no formato dd/mm/aaaa
-function hojeSP() {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: FUSO,
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date());
-}
-
-type Componentes = { dia: number; mes: number; ano: number };
-
-// Extrai { dia, mes, ano } de uma string dd/mm/aaaa (formato que sempre
-// vem do cliente, nunca é célula de planilha)
-function componentesDe(valor: string): Componentes {
-  const p = valor.split("/");
-  return { dia: parseInt(p[0]), mes: parseInt(p[1]), ano: parseInt(p[2]) };
-}
-
-// Extrai { dia, mes, ano } de uma CÉLULA de planilha, que pode vir como
-// texto "dd/mm/aaaa" OU como número serial de data do Google Sheets — com
-// valueRenderOption "UNFORMATTED_VALUE", uma célula digitada como data
-// (via USER_ENTERED, como o próprio /api/registro grava) é convertida pelo
-// Sheets num número de dias desde 30/12/1899, não fica como texto. Sem
-// tratar esse caso, a comparação de datas abaixo nunca bate e cada edição
-// de um dia já registrado vira uma linha nova em vez de atualizar a linha
-// existente — este é o bug relatado ("cria outro status" ao editar).
-function componentesDaCelula(cell: unknown): Componentes | null {
-  if (cell === null || cell === undefined || cell === "") return null;
-  if (typeof cell === "number") {
-    const EPOCH_SHEETS = Date.UTC(1899, 11, 30);
-    const d = new Date(EPOCH_SHEETS + cell * 86400000);
-    return { dia: d.getUTCDate(), mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
-  }
-  const s = String(cell).trim();
-  if (!s.includes("/")) return null;
-  const p = s.split("/");
-  if (p.length !== 3) return null;
-  const dia = parseInt(p[0], 10);
-  const mes = parseInt(p[1], 10);
-  const ano = parseInt(p[2], 10);
-  if (isNaN(dia) || isNaN(mes) || isNaN(ano)) return null;
-  return { dia, mes, ano };
-}
-
-function mesmaData(cell: unknown, alvo: Componentes) {
-  const c = componentesDaCelula(cell);
-  if (!c) return false;
-  return c.dia === alvo.dia && c.mes === alvo.mes && (c.ano === alvo.ano || c.ano === alvo.ano % 100);
-}
+import { hojeSP, componentesDe, mesmaData, acharColunasBanco } from "@/lib/sheet-dates";
 
 export async function POST(req: Request) {
   try {
@@ -65,10 +13,11 @@ export async function POST(req: Request) {
     const dataAlvo: string = typeof date === "string" && date.trim() ? date.trim() : hojeSP();
     const componentesAlvo = componentesDe(dataAlvo);
 
-    // ===== 1. Lê ACOMPANHAMENTO para achar a coluna da data alvo e o @username =====
-    // ACOMPANHAMENTO normalmente só tem colunas dos dias recentes/atuais — se
-    // a data pedida não estiver lá, statusCol fica -1 e esse passo é pulado
-    // (a atualização acontece só no BANCO_DE_DADOS, que é o histórico completo).
+    // ===== 1. Lê ACOMPANHAMENTO (best-effort) =====
+    // ACOMPANHAMENTO tem só UMA coluna de data "atual" (mantida manualmente
+    // fora deste app) — se ela não bater com a data alvo, statusCol fica -1
+    // e esse espelhamento é simplesmente pulado. O BANCO_DE_DADOS (passo 2)
+    // é a fonte de verdade real e sempre é atualizado.
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "ACOMPANHAMENTO!A1:Z100",
@@ -86,21 +35,12 @@ export async function POST(req: Request) {
     }
 
     let rowIndex = -1;
-    let username = "";
-    for (let r = dataRow + 1; r < rows.length; r++) {
-      if ((rows[r][0] || "").toString().trim() === name) {
-        rowIndex = r;
-        username = (rows[r][1] || "").toString().trim() || "";
-        break;
+    if (statusCol >= 0) {
+      for (let r = dataRow + 1; r < rows.length; r++) {
+        if ((rows[r][0] || "").toString().trim() === name) { rowIndex = r; break; }
       }
     }
 
-    console.log("[DIAG-registro] alvo:", { name, dataAlvo, componentesAlvo });
-    console.log("[DIAG-registro] ACOMPANHAMENTO linha0 (raw):", JSON.stringify(rows[0]));
-    console.log("[DIAG-registro] ACOMPANHAMENTO linha1 (raw):", JSON.stringify(rows[1]));
-    console.log("[DIAG-registro] ACOMPANHAMENTO statusCol:", statusCol, "dataRow:", dataRow, "rowIndex:", rowIndex);
-
-    // ===== 2. Salva no ACOMPANHAMENTO (coluna de hoje) =====
     if (statusCol >= 0 && rowIndex >= 0) {
       const colLetter = String.fromCharCode(65 + statusCol);
       await sheets.spreadsheets.values.update({
@@ -111,28 +51,21 @@ export async function POST(req: Request) {
       });
     }
 
-    // ===== 3. Salva/atualiza no BANCO_DE_DADOS (na data alvo) =====
+    // ===== 2. Salva/atualiza no BANCO_DE_DADOS (fonte de verdade) =====
     const bancoRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "BANCO_DE_DADOS!A1:D2000",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const bancoRows = bancoRes.data.values || [];
+    const { headerRow, colData, colNome, colUser, colStatus } = acharColunasBanco(bancoRows);
 
-    let headerRow = 0;
-    let colData = 0, colNome = 1, colUser = 2, colStatus = 3;
-    for (let r = 0; r < Math.min(bancoRows.length, 5); r++) {
-      const row = (bancoRows[r] || []).map((c: unknown) => String(c || "").toLowerCase());
-      if (row.some((c: string) => c.includes("influenciador") || c.includes("nome"))) {
-        headerRow = r;
-        row.forEach((c: string, i: number) => {
-          if (c.includes("data")) colData = i;
-          if (c.includes("influenciador") || c.includes("nome")) colNome = i;
-          if (c.includes("user") || c.includes("username") || c.includes("@")) colUser = i;
-          if (c.includes("status")) colStatus = i;
-        });
-        break;
-      }
+    // @username: pega da ACOMPANHAMENTO se achou a linha, senão de uma
+    // entrega anterior já gravada no BANCO_DE_DADOS pra esse nome.
+    let username = rowIndex >= 0 ? (rows[rowIndex][1] || "").toString().trim() : "";
+    if (!username) {
+      const existente = bancoRows.slice(headerRow + 1).find((r) => String(r[colNome] || "").trim() === name);
+      username = existente ? String(existente[colUser] || "").trim() : "";
     }
 
     let existingRow = -1;
@@ -142,18 +75,16 @@ export async function POST(req: Request) {
       if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; break; }
     }
 
-    console.log("[DIAG-registro] BANCO_DE_DADOS header (raw):", JSON.stringify(bancoRows[headerRow]));
-    console.log("[DIAG-registro] BANCO_DE_DADOS cols:", { headerRow, colData, colNome, colUser, colStatus });
-    console.log(
-      "[DIAG-registro] BANCO_DE_DADOS linhas do influenciador (raw data cell + tipo):",
-      JSON.stringify(
-        bancoRows
-          .slice(headerRow + 1)
-          .filter((r) => String(r[colNome] || "").trim() === name)
-          .map((r) => ({ dataCell: r[colData], tipo: typeof r[colData], status: r[colStatus] }))
-      )
-    );
-    console.log("[DIAG-registro] BANCO_DE_DADOS existingRow:", existingRow);
+    console.log("[DIAG-registro]", {
+      name,
+      dataAlvo,
+      existingRow,
+      amostraDatas: bancoRows
+        .slice(headerRow + 1)
+        .filter((r) => String(r[colNome] || "").trim() === name)
+        .slice(-3)
+        .map((r) => ({ dataCell: r[colData], tipo: typeof r[colData] })),
+    });
 
     if (existingRow >= 0) {
       const colLetter = String.fromCharCode(65 + colStatus);
