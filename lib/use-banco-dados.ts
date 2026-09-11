@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface Registro {
   data: string;
@@ -13,13 +13,16 @@ export function useBancoDados() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/banco-dados")
+  const refetch = useCallback(() => {
+    return fetch("/api/banco-dados")
       .then((r) => r.json())
       .then((d) => setRegistros(d.registros || []))
-      .catch(() => setRegistros([]))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
-  return { registros, loading };
+  useEffect(() => {
+    refetch().finally(() => setLoading(false));
+  }, [refetch]);
+
+  return { registros, loading, refetch };
 }

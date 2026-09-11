@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type Influencer = {
   id: number;
@@ -15,22 +15,21 @@ export function useInfluencers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await fetch("/api/influencers");
-        const data = await res.json();
-        if (data.influencers) {
-          setInfluencers(data.influencers);
-        }
-      } catch (e) {
-        setError("Falha ao carregar os influenciadores");
-      } finally {
-        setLoading(false);
+  const refetch = useCallback(async () => {
+    try {
+      const res = await fetch("/api/influencers");
+      const data = await res.json();
+      if (data.influencers) {
+        setInfluencers(data.influencers);
       }
+    } catch (e) {
+      setError("Falha ao carregar os influenciadores");
     }
-    fetchData();
   }, []);
 
-  return { influencers, loading, error };
+  useEffect(() => {
+    refetch().finally(() => setLoading(false));
+  }, [refetch]);
+
+  return { influencers, loading, error, refetch };
 }

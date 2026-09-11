@@ -81,8 +81,8 @@ function InstagramIcon({ className }: { className?: string }) {
 const STATUS_ORDEM = (Object.keys(STATUS_CONFIG) as StatusType[]).filter((s) => s !== "nao-postou");
 
 export default function RegistroPage() {
-  const { influencers, loading } = useInfluencers();
-  const { registros } = useBancoDados();
+  const { influencers, loading, refetch: refetchInfluencers } = useInfluencers();
+  const { registros, refetch: refetchBancoDados } = useBancoDados();
   const { obterFoto } = useFotos();
   const { mostrar } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -192,6 +192,13 @@ export default function RegistroPage() {
       });
       if (!res.ok) throw new Error("Falha ao salvar");
       setStatuses((prev) => ({ ...prev, [chave]: combined }));
+      // Mantém os dados de fundo (histórico e status de hoje) sincronizados
+      // com o que acabou de ser salvo — sem isso, numa sessão longa
+      // alternando entre datas, quem já foi editado nesta sessão continua
+      // certo (via `statuses` acima), mas conferir outra pessoa/data volta
+      // a olhar pro snapshot carregado quando a página abriu.
+      refetchBancoDados();
+      if (ehHoje) refetchInfluencers();
     } catch {
       const fila = [...lerFila(), { name: nome, status: combined, timestamp: Date.now(), ...(dataBR ? { data: dataBR } : {}) }];
       salvarFila(fila);
