@@ -96,6 +96,13 @@ export default function RegistroPage() {
   const [ultimoAtalho, setUltimoAtalho] = useState<string | null>(null);
   const [dataSelecionada, setDataSelecionada] = useState(hojeISO());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guarda o último status marcado que ainda não foi confirmado (dentro do
+  // segundo de espera antes de salvar). Se o usuário sair da página de
+  // Registro (trocar de aba no menu, etc.) antes desse segundo passar, o
+  // timeout é cancelado — sem isso, o clique é perdido silenciosamente,
+  // sem nenhum aviso. O cleanup do efeito abaixo usa essa ref pra garantir
+  // que o que foi marcado ainda seja salvo mesmo saindo da página.
+  const pendenteRef = useRef<{ nome: string; sel: StatusType[]; dataISO: string } | null>(null);
 
   const estaEditandoPassado = dataSelecionada !== hojeISO();
 
@@ -111,6 +118,7 @@ export default function RegistroPage() {
 
   function mudarData(novaISO: string) {
     if (timerRef.current) clearTimeout(timerRef.current);
+    pendenteRef.current = null;
     setSelected([]);
     setDataSelecionada(novaISO);
   }
@@ -131,10 +139,27 @@ export default function RegistroPage() {
     }
   }, [currentIndex]);
 
-  // Limpa o timer ao desmontar
+  // Ao desmontar (ex.: usuário navegou pra outra aba do menu), salva
+  // imediatamente qualquer marcação pendente em vez de simplesmente
+  // cancelar o timer e perder o clique.
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      const pendente = pendenteRef.current;
+      if (pendente) {
+        pendenteRef.current = null;
+        const combined = pendente.sel.map((s) => STATUS_CONFIG[s].label).join(" / ");
+        const ehHoje = pendente.dataISO === hojeISO();
+        const dataBR = ehHoje ? undefined : isoParaBR(pendente.dataISO);
+        fetch("/api/registro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: pendente.nome, status: combined, ...(dataBR ? { date: dataBR } : {}) }),
+        }).catch(() => {
+          const fila = [...lerFila(), { name: pendente.nome, status: combined, timestamp: Date.now(), ...(dataBR ? { data: dataBR } : {}) }];
+          salvarFila(fila);
+        });
+      }
     };
   }, []);
 
@@ -219,7 +244,9 @@ export default function RegistroPage() {
     }
     setSelected(nova);
     if (timerRef.current) clearTimeout(timerRef.current);
+    pendenteRef.current = nova.length > 0 && current ? { nome: current.name, sel: nova, dataISO: dataSelecionada } : null;
     timerRef.current = setTimeout(() => {
+      pendenteRef.current = null;
       if (nova.length > 0) {
         salvarEavancar(nova);
       }
@@ -245,6 +272,7 @@ export default function RegistroPage() {
   function goBack() {
     if (currentIndex > 0 && !saving) {
       if (timerRef.current) clearTimeout(timerRef.current);
+      pendenteRef.current = null;
       setCurrentIndex(currentIndex - 1);
       setSelected([]);
     }
@@ -253,6 +281,7 @@ export default function RegistroPage() {
   function pular() {
     if (saving) return;
     if (timerRef.current) clearTimeout(timerRef.current);
+    pendenteRef.current = null;
     setSelected([]);
     if (currentIndex + 1 < influencers.length) {
       setCurrentIndex(currentIndex + 1);
@@ -263,6 +292,7 @@ export default function RegistroPage() {
 
   function comecarDoInicio() {
     if (timerRef.current) clearTimeout(timerRef.current);
+    pendenteRef.current = null;
     localStorage.removeItem(STORAGE_KEY);
     setStatuses({});
     setSelected([]);
