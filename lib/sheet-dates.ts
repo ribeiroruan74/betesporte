@@ -48,6 +48,28 @@ export function mesmaData(cell: unknown, alvo: Componentes): boolean {
   return c.dia === alvo.dia && c.mes === alvo.mes && (c.ano === alvo.ano || c.ano === alvo.ano % 100);
 }
 
+// Formata { dia, mes, ano } como "dd/mm/aaaa" (sempre zero-padded, sempre
+// ano com 4 dígitos) — usado pra normalizar a data de qualquer célula de
+// planilha num formato único, já que o Google Sheets pode devolver a mesma
+// data como texto não padronizado ("9/9/2026") ou como número serial
+// dependendo da formatação da célula/coluna. Consumidores que comparam
+// strings de data diretamente (cobrança, histórico, relatórios, metas, a
+// edição de dias anteriores no Registro) dependem desse formato ser sempre
+// o mesmo pra bater.
+export function formatarComponentes(c: Componentes): string {
+  const ano = c.ano < 100 ? c.ano + 2000 : c.ano;
+  return `${String(c.dia).padStart(2, "0")}/${String(c.mes).padStart(2, "0")}/${ano}`;
+}
+
+// Normaliza uma célula de data de planilha (texto solto ou serial number)
+// pro formato canônico "dd/mm/aaaa". Cai de volta pro texto original (com
+// trim) se não conseguir interpretar como data.
+export function normalizarDataCelula(cell: unknown): string {
+  const c = componentesDaCelula(cell);
+  if (c) return formatarComponentes(c);
+  return String(cell ?? "").trim();
+}
+
 // Acha { headerRow, colData, colNome, colUser, colStatus } no BANCO_DE_DADOS,
 // tolerando variação de nome de coluna (mesma heurística usada em /api/registro
 // e /api/influencers — extraída pra um lugar só pra não desviar entre si).

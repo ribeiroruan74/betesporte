@@ -1,40 +1,41 @@
 import { NextResponse } from "next/server";
 import { sheets, SPREADSHEET_ID } from "@/lib/sheets";
+import { normalizarDataCelula, acharColunasBanco } from "@/lib/sheet-dates";
 
 export async function GET() {
   try {
+    // UNFORMATTED_VALUE (não FORMATTED_VALUE) porque a coluna de data pode
+    // estar formatada como data de verdade na planilha — nesse caso
+    // FORMATTED_VALUE devolve o texto exibido, que pode variar (ex.:
+    // "9/9/2026" sem zero à esquerda) dependendo da formatação da célula,
+    // e todo o resto do app compara essa data como string exata contra um
+    // "dd/mm/aaaa" sempre zero-padded. normalizarDataCelula() garante que
+    // a data sempre sai daqui no mesmo formato, não importa como a
+    // planilha guarda a célula.
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "BANCO_DE_DADOS!A1:D2000",
-      valueRenderOption: "FORMATTED_VALUE",
+      valueRenderOption: "UNFORMATTED_VALUE",
     });
     const rows = res.data.values || [];
-
-    let headerRow = 0;
-    let colData = 0, colNome = 1, colUser = 2, colStatus = 3;
-    for (let r = 0; r < Math.min(rows.length, 5); r++) {
-      const row = (rows[r] || []).map((c: unknown) => String(c || "").toLowerCase());
-      if (row.some((c: string) => c.includes("influenciador") || c.includes("nome"))) {
-        headerRow = r;
-        row.forEach((c: string, i: number) => {
-          if (c.includes("data")) colData = i;
-          if (c.includes("influenciador") || c.includes("nome")) colNome = i;
-          if (c.includes("user") || c.includes("username") || c.includes("@")) colUser = i;
-          if (c.includes("status")) colStatus = i;
-        });
-        break;
-      }
-    }
+    const { headerRow, colData, colNome, colUser, colStatus } = acharColunasBanco(rows);
 
     const registros = rows
       .slice(headerRow + 1)
       .filter((row) => row[colNome] && row[colNome].toString().trim() !== "")
       .map((row) => ({
-        data: row[colData]?.toString().trim() || "",
+        data: normalizarDataCelula(row[colData]),
         nome: row[colNome]?.toString().trim() || "",
         username: row[colUser]?.toString().trim() || "",
         status: row[colStatus]?.toString().trim() || "",
       }));
+
+    console.log(
+      "[DIAG-banco-dados] amostra (raw -> normalizado):",
+      JSON.stringify(
+        rows.slice(headerRow + 1, headerRow + 4).map((row) => ({ raw: row[colData], tipo: typeof row[colData], normalizado: normalizarDataCelula(row[colData]) }))
+      )
+    );
 
     return NextResponse.json({ registros });
   } catch (error) {
