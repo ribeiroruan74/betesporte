@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     // ===== 2. Salva/atualiza no BANCO_DE_DADOS (fonte de verdade) =====
     const bancoRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "BANCO_DE_DADOS!A1:D2000",
+      range: "BANCO_DE_DADOS!A:D",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const bancoRows = bancoRes.data.values || [];
@@ -74,17 +74,6 @@ export async function POST(req: Request) {
       const n = String(row[colNome] || "").trim();
       if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; break; }
     }
-
-    console.log("[DIAG-registro]", {
-      name,
-      dataAlvo,
-      existingRow,
-      amostraDatas: bancoRows
-        .slice(headerRow + 1)
-        .filter((r) => String(r[colNome] || "").trim() === name)
-        .slice(-3)
-        .map((r) => ({ dataCell: r[colData], tipo: typeof r[colData] })),
-    });
 
     if (existingRow >= 0) {
       const colLetter = String.fromCharCode(65 + colStatus);

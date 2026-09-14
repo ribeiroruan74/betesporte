@@ -14,7 +14,7 @@ export async function GET() {
     // planilha guarda a célula.
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "BANCO_DE_DADOS!A1:D2000",
+      range: "BANCO_DE_DADOS!A:D",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const rows = res.data.values || [];
@@ -29,13 +29,6 @@ export async function GET() {
         username: row[colUser]?.toString().trim() || "",
         status: row[colStatus]?.toString().trim() || "",
       }));
-
-    console.log("[DIAG-banco-dados] header detectado:", JSON.stringify(rows[headerRow]), { headerRow, colData, colNome, colUser, colStatus });
-    console.log("[DIAG-banco-dados] total de registros:", registros.length);
-    console.log(
-      "[DIAG-banco-dados] BABADOS:",
-      JSON.stringify(registros.filter((r) => r.nome.toUpperCase().includes("BABADOS")))
-    );
 
     return NextResponse.json({ registros });
   } catch (error) {

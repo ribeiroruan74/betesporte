@@ -41,7 +41,7 @@ export async function GET() {
     const componentesHoje = componentesDe(hoje);
     const bancoRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "BANCO_DE_DADOS!A1:D2000",
+      range: "BANCO_DE_DADOS!A:D",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const bancoRows = bancoRes.data.values || [];
