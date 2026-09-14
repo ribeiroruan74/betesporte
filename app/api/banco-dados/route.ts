@@ -30,11 +30,11 @@ export async function GET() {
         status: row[colStatus]?.toString().trim() || "",
       }));
 
+    console.log("[DIAG-banco-dados] header detectado:", JSON.stringify(rows[headerRow]), { headerRow, colData, colNome, colUser, colStatus });
+    console.log("[DIAG-banco-dados] total de registros:", registros.length);
     console.log(
-      "[DIAG-banco-dados] amostra (raw -> normalizado):",
-      JSON.stringify(
-        rows.slice(headerRow + 1, headerRow + 4).map((row) => ({ raw: row[colData], tipo: typeof row[colData], normalizado: normalizarDataCelula(row[colData]) }))
-      )
+      "[DIAG-banco-dados] BABADOS:",
+      JSON.stringify(registros.filter((r) => r.nome.toUpperCase().includes("BABADOS")))
     );
 
     return NextResponse.json({ registros });
