@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     // é a fonte de verdade real e sempre é atualizado.
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "ACOMPANHAMENTO!A1:Z100",
+      range: "ACOMPANHAMENTO!A:Z",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const rows = res.data.values || [];
@@ -68,11 +68,15 @@ export async function POST(req: Request) {
       username = existente ? String(existente[colUser] || "").trim() : "";
     }
 
+    // Se existirem duplicatas de pessoa+data (deixadas por um bug já
+    // corrigido), atualiza a última — mantém a planilha convergindo pra
+    // uma só linha "correta" por dia em vez de deixar a mais antiga como
+    // a que sempre é editada.
     let existingRow = -1;
     for (let r = headerRow + 1; r < bancoRows.length; r++) {
       const row = bancoRows[r] || [];
       const n = String(row[colNome] || "").trim();
-      if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; break; }
+      if (n === name && mesmaData(row[colData], componentesAlvo)) { existingRow = r; }
     }
 
     if (existingRow >= 0) {

@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "ACOMPANHAMENTO!A1:Z100",
+      range: "ACOMPANHAMENTO!A:Z",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const rows = res.data.values || [];

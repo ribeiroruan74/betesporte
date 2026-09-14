@@ -20,7 +20,7 @@ export async function GET() {
     const rows = res.data.values || [];
     const { headerRow, colData, colNome, colUser, colStatus } = acharColunasBanco(rows);
 
-    const registros = rows
+    const todos = rows
       .slice(headerRow + 1)
       .filter((row) => row[colNome] && row[colNome].toString().trim() !== "")
       .map((row) => ({
@@ -29,6 +29,14 @@ export async function GET() {
         username: row[colUser]?.toString().trim() || "",
         status: row[colStatus]?.toString().trim() || "",
       }));
+
+    // Um bug já corrigido (editar um dia já registrado criava uma linha
+    // nova em vez de atualizar a existente) deixou duplicatas de
+    // pessoa+data pra trás na planilha. Mantém só a última — a mais
+    // recente é a que reflete a edição mais atual.
+    const porChave = new Map<string, (typeof todos)[number]>();
+    for (const r of todos) porChave.set(`${r.nome}::${r.data}`, r);
+    const registros = Array.from(porChave.values());
 
     return NextResponse.json({ registros });
   } catch (error) {

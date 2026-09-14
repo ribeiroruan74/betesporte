@@ -23,7 +23,7 @@ export async function POST() {
     // (mas o BANCO_DE_DADOS já está correto de qualquer forma).
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "ACOMPANHAMENTO!A1:Z100",
+      range: "ACOMPANHAMENTO!A:Z",
       valueRenderOption: "UNFORMATTED_VALUE",
     });
     const rows = res.data.values || [];
@@ -52,7 +52,6 @@ export async function POST() {
           const row = bancoRows[r] || [];
           if (String(row[colNome] || "").trim() === u.nome && mesmaData(row[colData], componentesHoje)) {
             existingRow = r;
-            break;
           }
         }
         if (existingRow >= 0) {

@@ -4,7 +4,7 @@ import { sheets, SPREADSHEET_ID } from "@/lib/sheets";
 async function lerLinhas() {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "ACOMPANHAMENTO!A1:C100",
+    range: "ACOMPANHAMENTO!A:C",
     valueRenderOption: "UNFORMATTED_VALUE",
   });
   return res.data.values || [];
